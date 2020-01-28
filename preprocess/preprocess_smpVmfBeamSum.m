@@ -29,7 +29,7 @@ for lightComp = 1:1:size(fp,2)
     dz = cubeDist(P0_n,config.box_min,config.box_max,-1 * mu_n);
     
     sampleZfunction = exp(-sigt * dz) .* (sigma_gal./sigma_hat).^2 .* ...
-        exp(((kappa_g^2)/(4*pi^2) + ((sampleGridZ - P3)/mu3).^2) .* (1 - mu3^2) ./ sigma_gal^2);
+        exp(((kappa_g^2)/(4*pi^2) + ((sampleGridZ - P3)/mu3).^2) .* (1 - mu3^2) ./ sigma_gal.^2);
     
     preprocessPdf = sampleZfunction / sum(sampleZfunction);
     zCdf = cumsum(preprocessPdf);

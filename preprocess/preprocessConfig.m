@@ -85,13 +85,14 @@ else
     
     if(~isInCache)
         config.movmf = movmfBuild(config.sctType, config.ampfunc, config.dimNum, config.vmf_k, config.vmf_samples, config.vmf_iterations, config.useGpu);
+        lastElem = numel(vmfCache);
     
-        vmfCache(end+1).g = config.g;
-        vmfCache(end+1).forwardWeight = config.forwardWeight;
-        vmfCache(end+1).vmf_k = config.vmf_k;
-        vmfCache(end+1).vmf_iterations = config.vmf_iterations;
-        vmfCache(end+1).vmf_samples = config.vmf_samples;
-        vmfCache(end+1).movmf = config.movmf;
+        vmfCache(lastElem+1).g = config.g;
+        vmfCache(lastElem+1).forwardWeight = config.forwardWeight;
+        vmfCache(lastElem+1).vmf_k = config.vmf_k;
+        vmfCache(lastElem+1).vmf_iterations = config.vmf_iterations;
+        vmfCache(lastElem+1).vmf_samples = config.vmf_samples;
+        vmfCache(lastElem+1).movmf = config.movmf;
     
         save(['preprocess',filesep,'vmfCache.mat'],'vmfCache');
     end
@@ -111,7 +112,7 @@ if(mod(config.sampleFlag,10) == 3)
 end
 
 if(mod(config.sampleFlag,10) == 4)
-    config.smpPreprocess = preprocess_smpVmfBeamSum_rendering(config,1e4);
+    config.smpPreprocess = preprocess_smpVmfBeamSum(config,1e4);
 end
 
 px = zeros(1,pxItersNum);
@@ -137,6 +138,6 @@ for iterNum = 1:1:pxItersNum
     end
 end
 
-config.smpPreprocess.pxMin = median(px) * minTorr;
+config.smpPreprocess(1).pxMin = median(px) * minTorr;
 
 end

@@ -9,6 +9,8 @@ function [conv_vmf]=movmfConv(apertureVmf,scatteringMovmf)
 % OUTPUT
 % conv_vmf: convolution result. movmf with N = 2.
 
+% !!!! Need to be checked for backscattering !!!!
+
 if(apertureVmf.N ~= 2)
     error('Use this convolution only for two light sources!')
 end
@@ -70,15 +72,20 @@ if(dim == 3)
     rotatedMu(1,1,:) = R(:,:,1) * permute(apertureVmf.mu(1,1,:),[3,1,2]);
     rotatedMu(2,1,:) = R(:,:,2) * permute(apertureVmf.mu(2,1,:),[3,1,2]);
     
-    A1 = apertureVmf.kappa .* rotatedMu(:,:,3);
+%     A1 = apertureVmf.kappa .* rotatedMu(:,:,3);
+    A1 = rotatedMu(:,:,3);
     A1 = [A1,A1,0*A1];
     
-    B1 = apertureVmf.kappa .* permute(rotatedMu(:,:,1:2),[1,3,2]);
-    c1 = apertureVmf.kappa .* rotatedMu(:,:,3) + apertureVmf.c;
+%     B1 = apertureVmf.kappa .* permute(rotatedMu(:,:,1:2),[1,3,2]);
+%     c1 = apertureVmf.kappa .* rotatedMu(:,:,3) + apertureVmf.c;
+    
+    B1 = permute(rotatedMu(:,:,1:2),[1,3,2]);
+    c1 = rotatedMu(:,:,3) + apertureVmf.c;
     s1 = ones(apertureVmf.N,1,class(C));
     
     for vmfNum = 1:1:k
-        kappa = scatteringMovmf.kappa(1,vmfNum,end);
+%         kappa = scatteringMovmf.kappa(1,vmfNum,end);  What about backscattering?!
+        kappa = abs(scatteringMovmf.mu(1,vmfNum,end));
         alpha = scatteringMovmf.alpha(vmfNum);
         c = scatteringMovmf.c(vmfNum);
 
@@ -165,7 +172,8 @@ if(dim == 3)
     % maximal value in maximal direction
     log_estimated_conv_max = conv_vmf.kappa .* (sum(conv_vmf.mu .* w_max,3)) + conv_vmf.c;
     
-    C = sqrt(sum((kappaMu + scatteringMovmf.kappa .* w_max).^2,3));
+%     C = sqrt(sum((kappaMu + scatteringMovmf.kappa .* w_max).^2,3));
+    C = sqrt(sum((kappaMu + abs(scatteringMovmf.mu(:,:,end)) .* w_max).^2,3));
     
     c = apertureVmf.c + scatteringMovmf.c;
     log_exact_conv_max = c+C + log(2*pi) - log(C);
@@ -176,17 +184,6 @@ if(dim == 3)
     conv_vmf.c = conv_vmf.c - log_estimated_conv_max + log_exact_conv_max;
 else
     error('2D is not implemented yet')
-%     pdf_mog = sum(mog.alpha .* mog.s .* ...
-%         exp(-0.5*mog.A .* ux.^2 + mog.B .* ux + mog.c),2);
-    
-%     invSumA1A2 = 1 ./ (A1 + mog.A);
-% 
-%     conv_mog.A = mog.A .* invSumA1A2 .* A1;
-%     conv_mog.B = mog.B .* invSumA1A2 .* A1 + B1 .* invSumA1A2 .* mog.A;
-%     conv_mog.c = c1 + mog.c + ((B1 - mog.B).^2) .* invSumA1A2 / 2;
-%     conv_mog.s = s1 .* mog.s .* sqrt(((2*pi).^1) .* invSumA1A2);
-%     conv_mog.alpha = mog.alpha;
-%     conv_mog.k = mog.k;
 end
 
 end

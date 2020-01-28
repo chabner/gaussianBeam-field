@@ -42,8 +42,8 @@ config.focalPointsV_base = -6:0.125:6;
 
 % -------------
 % focal directions
-config.focalLDirections = deg2rad(0:1:5);
-config.focalVDirections = deg2rad(0:1:5);
+config.focalLDirections = deg2rad(0:1:1);
+config.focalVDirections = deg2rad(0:1:1);
 
 %% Scattering fnuction
 
