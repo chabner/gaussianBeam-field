@@ -68,10 +68,11 @@ for itr=1:maxItr
             px = px * V; % The reson I multiple with V - same prob as uniform
             xRep = xRep + xMissIter;
     end
-%      x
+     x
     px = max(px,smpFunc(1).pxMin);
     
-    throughputVmf_l = movmfThroughput(apertureVmf_l,x,-signl,sigt(2),box_min,box_max);
+    dz = cubeDist(x,box_min,box_max,-dirl);
+    throughputVmf_l = movmfThroughput(apertureVmf_l,x,-signl,sigt(2),dz);
     conv_vmf_l0 = movmfConv(throughputVmf_l,movmf);
     
     % First scattering direction
@@ -95,7 +96,8 @@ for itr=1:maxItr
     randPhase = exp(2*pi*1i*rand);
     
     for lightNum = 1:1:Nl
-        throughputVmf_v = movmfThroughput(apertureVmf_v{lightNum},x,signv,sigt(2),box_min,box_max);
+        dz = cubeDist(x,box_min,box_max,dirv(:,lightNum));
+        throughputVmf_v = movmfThroughput(apertureVmf_v{lightNum},x,signv,sigt(2),dz);
         movmf_mult = movmfMultiple(movmfPick(conv_vmf_l0,lightNum),throughputVmf_v,true,false);
         integrateMult = movmfIntegrate(movmf_mult);
         us(:,lightNum) = us(:,lightNum) + integrateMult * randPhase / sqrt(px);
@@ -129,7 +131,8 @@ for itr=1:maxItr
             rotatedMovmf_v.mu = sign(rotatedMovmf_v.mu(:,:,3)) .* reshape(ow,1,1,[]);
             
             for lightNum = 1:1:Nl
-                throughputVmf_v = movmfThroughput(apertureVmf_v{lightNum},x,signv,sigt(2),box_min,box_max);
+                dz = cubeDist(x,box_min,box_max,dirv(:,lightNum));
+                throughputVmf_v = movmfThroughput(apertureVmf_v{lightNum},x,signv,sigt(2),dz);
                 throughputVmf_v_times_movmf = movmfMultiple(throughputVmf_v,rotatedMovmf_v,true);
                 ev = movmfIntegrate(throughputVmf_v_times_movmf);
                 u(:,lightNum) = u(:,lightNum)+ev(:)*el(lightNum)/sqrt(px) * randPhase;

@@ -32,7 +32,7 @@ if(dim == 3)
     
     % sample a direction
     smpNum = datasample(1:1:numel(movmfn.alpha),1,'Weights',gather(movmfn.alpha));
-    w0 = vsamp(permute(mu(1,smpNum,:),[3,1,2]), kappa(smpNum), 1);
+    w0 = vsamp(permute(gather(mu(1,smpNum,:)),[3,1,2]), gather(kappa(smpNum)), 1);
     
     % calculate probability
     w0p = sqrt(mean(movmfPdf(movmf,w0)));

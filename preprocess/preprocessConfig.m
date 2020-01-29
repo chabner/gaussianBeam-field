@@ -1,12 +1,7 @@
 function config = preprocessConfig(config)
 %% Sample
-if(config.dimNum == 2)
-    config.box_min = [-config.boxAxial/2;-config.boxDepth/2];
-    config.box_max = [config.boxAxial/2;config.boxDepth/2];
-else
-    config.box_min = [-config.boxAxial/2;-config.boxAxial/2;-config.boxDepth/2];
-    config.box_max = [config.boxAxial/2;config.boxAxial/2;config.boxDepth/2];
-end
+config.box_min = [-config.boxAxial/2;-config.boxAxial/2;-config.boxDepth/2];
+config.box_max = [config.boxAxial/2;config.boxAxial/2;config.boxDepth/2];
 
 %% Aperture
 % Focal points

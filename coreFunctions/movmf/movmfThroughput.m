@@ -1,4 +1,4 @@
-function [throughputVmf] = movmfThroughput(apertureVmf,x,signz,sigt,box_min,box_max)
+function [throughputVmf] = movmfThroughput(apertureVmf,x,signz,sigt,dz)
 % compute the throughput due to scattering
 %
 % INPUT:
@@ -15,16 +15,16 @@ tmp_throughputVmf.dim = apertureVmf.dim;
 tmp_throughputVmf.N = 1;
 tmp_throughputVmf.k = 1;
 
-appAbs = movmfAbs(movmfPick(apertureVmf,1));
-appDirection = signz * permute(appAbs.mu,[3,1,2]);
-dz = cubeDist(x,box_min,box_max,appDirection);
-
 x = x(:);
+dz = dz(:);
+Nz = numel(dz);
+x = repmat(x,1,Nz);
+
 tmp_throughputVmf.mu = permute(signz * 2*pi*1i*(x.'),[1,3,2]);
-tmp_throughputVmf.alpha = 1;
+tmp_throughputVmf.alpha = ones(Nz,1);
 tmp_throughputVmf.c = -(sigt/2)*dz;
 
-throughputVmf = movmfMultiple(apertureVmf,tmp_throughputVmf,true,true);
+throughputVmf = movmfMultiple(apertureVmf,tmp_throughputVmf,Nz == 1,true);
 end
 
 

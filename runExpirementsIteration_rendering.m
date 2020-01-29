@@ -8,11 +8,11 @@ for iterNum = 1:1:1e3
 
         config = preprocessConfig(config);
         tic
-        [u_small,u_big,us_small,us_big] = run_rendering(config);
+        [u,us] = run_rendering(config);
         t = toc
 
         T = datetime('now','Format','ddMM_HHmmss_SSS');
-        save(['res2',filesep,config.projectName,'_',num2str(iterNum),'_',char(T),'.mat'], ...
-            'u_small','u_big','config','t','us_small','us_big');
+        save(['res',filesep,config.projectName,'_',num2str(iterNum),'_',char(T),'.mat'], ...
+            'u','us','config','t');
     end
 end

@@ -22,9 +22,9 @@ missX = 0;
 Naperture = vmfApperture.N;
 
 % sample (x,y)
-kappaMu_r = real(vmfApperture.mu);
+kappaMu_r = gather(real(vmfApperture.mu));
 kappa_r = sqrt(sum(kappaMu_r.*(conj(kappaMu_r)),3));
-P0 = -imag(vmfApperture.mu)/(2*pi);
+P0 = gather(-imag(vmfApperture.mu)/(2*pi));
 mu_r = kappaMu_r ./ kappa_r;
 
 mu_r(~isfinite(mu_r(:,:,1:2))) = 0;

@@ -1,4 +1,4 @@
-function [u,us,um]=MCfieldOnWave(af_ang_vl,Wl,xl,varl,dirl,dirv,sigt,albedo,box_min,box_max,l,v,is_ff_l,is_ff_v,maxItr,lambda,doCBS,smpFlg,sct_type,ampfunc,ampfunc0,lmean0)
+function [u,us,um]=MCfieldOnWave(af_ang_vl,Wl,dirl,dirv,sigt,albedo,box_min,box_max,l,v,is_ff_l,is_ff_v,maxItr,lambda,doCBS,smpFlg,sct_type,ampfunc,ampfunc0,lmean0)
 %MCFIELD MC rendering field algorithm
 %
 % render a speckle field for Nv viewings and Nl lights
@@ -40,9 +40,6 @@ function [u,us,um]=MCfieldOnWave(af_ang_vl,Wl,xl,varl,dirl,dirv,sigt,albedo,box_
 %% Check validity of some of the input
 %narginchk(14,16);
 
-Wl_1 = Wl(1,:);
-Wl_2 = Wl(2,:);
-
 % get the dimensions size
 if((numel(box_max) ~= 2 && numel(box_max) ~= 3) || ...
         (size(box_max,2) ~= 1) || (any(size(box_max) ~= size(box_min))))
@@ -74,8 +71,8 @@ Nv = size(v,2);
 %% Prepare for algorithm
 
 % Initiate output parameters
-u_1 = zeros(Nv,1);
-u_2 = zeros(Nv,1);
+% u = zeros(Nv,size(Wl,1));
+u = 0;
 
 % first scattering event direction
 if ~exist('lmean0','var')
@@ -141,7 +138,7 @@ for itr=1:maxItr
     end
     %x=[0;30;0.0000001];
     %x=[-30;0;50];
-    %x
+    x
     % entrance directions for near-field sources
     if ~is_ff_v
         rv=v-repmat(x,1,Nv);
@@ -181,17 +178,16 @@ for itr=1:maxItr
     % complex transmission (xi function in article) and attenuation term 
     % in multiple scattering (tau function in article) between first scattering
     % particle and the light source 
-    e_l0=evalphaseatt(x,l,is_ff_l,sigt(2),lambda,box_min,box_max,dirl);
+    e_l0=evalphaseatt(x,l,is_ff_l,sigt(2),lambda,box_min,box_max,1,dirl);
     
     % complex volumetric throughput (ni function in article) of first
     % scattering event to be used with paths of length >1 (the multiple scattering
     % case)
-    e_l0_ms_1=sum(e_l0(1,:).*af_l.*Wl_1,2);
-    e_l0_ms_2=sum(e_l0(2,:).*af_l.*Wl_2,2);
+    e_l0_ms = sum(e_l0.*af_l.*Wl,2);
     
     % complex volumetric throughput connecting first scattering particle
     % and the sensors
-    e_v0=evalphaseatt(x,ff_sign*v,is_ff_v,sigt(2),lambda,box_min,box_max,-dirv);
+    e_v0=evalphaseatt(x,ff_sign*v,is_ff_v,sigt(2),lambda,box_min,box_max,-1,dirv);
     
     % in case of coherent backscattering, calculate also the complex
     % volumetric throughput where the path begins from the view to the
@@ -230,30 +226,24 @@ for itr=1:maxItr
         % Update field with next-event estimation
         if (pL==1)
             %tpath=sum(af_ang_vl.*(e_v0(:)*(e_l0(:).*Wl(:)).'),2);
-            tpath_1= e_v0(1,:).'.*sum(af_ang_vl*(e_l0(1,:).'.*Wl_1(:)),2);
-            tpath_2= e_v0(2,:).'.*sum(af_ang_vl*(e_l0(2,:).'.*Wl_2(:)),2);
+            tpath = e_v0(1,:).'.*sum(af_ang_vl*(e_l0.'.*Wl(:)),2);
         else
-            tpath_1=(e_v_ms(1,:)*conj(e_l0_ms_1(:))');
-            tpath_2=(e_v_ms(2,:)*conj(e_l0_ms_2(:))');
+            tpath = (e_v_ms(1,:)*conj(e_l0_ms(:))');
             if doCBS
                 tpath=1/sqrt(2)*(tpath+(e_v0_ms(:)*conj(e_l_ms(:))'));
             end
         end
 
         % weight path
-        tpath_1=sqrt(weight./px)*tpath_1;
-        tpath_2=sqrt(weight./px)*tpath_2;
+        tpath = sqrt(weight./px)*tpath;
         % sample random phase for path
         randNum = exp(2*pi*1i*rand);
-        tpath_1=tpath_1*randNum;
-        tpath_2=tpath_2*randNum;
+        tpath = tpath*randNum;
         %add path to field
-        u_1=u_1+tpath_1(:);
-        u_2=u_2+tpath_2(:);
+        u = u + tpath(:);
         
         if (pL==1)
-            us_1 = u_1;
-            us_2 = u_2;
+            us = u;
         end
 
         % advance to the next scattering event
@@ -286,8 +276,6 @@ for itr=1:maxItr
 end
 
 %% Normalization
-u = [u_1,u_2];
-us = [us_1,us_2];
 um = u - us;
 
 u=u*sqrt(1/maxItr*V*sigt(2));

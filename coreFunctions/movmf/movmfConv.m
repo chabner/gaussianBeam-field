@@ -11,9 +11,9 @@ function [conv_vmf]=movmfConv(apertureVmf,scatteringMovmf)
 
 % !!!! Need to be checked for backscattering !!!!
 
-if(apertureVmf.N ~= 2)
-    error('Use this convolution only for two light sources!')
-end
+% if(apertureVmf.N ~= 2)
+%     error('Use this convolution only for two light sources!')
+% end
 
 if(apertureVmf.k ~= 1)
     error('Aperture is only one mixture')
@@ -67,10 +67,10 @@ if(dim == 3)
         R(3,1,tFactors) = 0; R(3,2,tFactors) = 0;
     end
     
-    % aperture to gaussian
-    rotatedMu = zeros(size(apertureVmf.mu),class(C));
-    rotatedMu(1,1,:) = R(:,:,1) * permute(apertureVmf.mu(1,1,:),[3,1,2]);
-    rotatedMu(2,1,:) = R(:,:,2) * permute(apertureVmf.mu(2,1,:),[3,1,2]);
+    % aperture to gaussian    
+    pR = permute(R,[3,1,2]);
+    rotatedMu = sum(pR .* apertureVmf.mu,3 );
+    rotatedMu = permute(rotatedMu,[1,3,2]);
     
 %     A1 = apertureVmf.kappa .* rotatedMu(:,:,3);
     A1 = rotatedMu(:,:,3);
@@ -150,10 +150,16 @@ if(dim == 3)
         conv_mu(conv_kappa == 0,3) = 1;
 
         conv_c = conv_g_c + log(conv_g_s) - conv_g_A(:,1);
-
+        
         % rotate back
-        conv_mu(1,:) = (R(:,:,1) \ conv_mu(1,:).').';
-        conv_mu(2,:) = (R(:,:,2) \ conv_mu(2,:).').';
+        if(isa(R,'gpuArray'))
+            conv_mu = pagefun(@mldivide,R,permute(conv_mu,[2,3,1]));
+            conv_mu = permute(conv_mu,[3,1,2]);
+        else
+            for lNum = 1:1:N
+                conv_mu(lNum,:) = (R(:,:,lNum) \ conv_mu(lNum,:).').';
+            end
+        end
 
         % build the vmf
         conv_vmf.mu(:,vmfNum,:) = conv_mu;
