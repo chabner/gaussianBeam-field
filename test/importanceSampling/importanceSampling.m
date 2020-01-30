@@ -4,6 +4,7 @@ allExpirements = dir('config*.m');
 rng('shuffle')
 for iterNum = 1:1:1e3
     for expirementFile = 1:1:numel(allExpirements)
+            clear config
             run([allExpirements(expirementFile).folder,filesep,allExpirements(expirementFile).name]);
 
             config = preprocessConfig(config);
