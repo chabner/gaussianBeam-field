@@ -73,6 +73,7 @@ Nv = size(v,2);
 % Initiate output parameters
 % u = zeros(Nv,size(Wl,1));
 u = 0;
+us = 0;
 
 % first scattering event direction
 if ~exist('lmean0','var')
@@ -138,7 +139,7 @@ for itr=1:maxItr
     end
     %x=[0;30;0.0000001];
     %x=[-30;0;50];
-    x
+%     x
     % entrance directions for near-field sources
     if ~is_ff_v
         rv=v-repmat(x,1,Nv);
@@ -211,7 +212,7 @@ for itr=1:maxItr
         % calculate the complex volumetric throughput for the last
         % scattering event in case of multiple scattering
         if (pL>1)
-            e_v=evalphaseatt(x,ff_sign*v,is_ff_v,sigt(2),lambda,box_min,box_max,-dirv);
+            e_v=evalphaseatt(x,ff_sign*v,is_ff_v,sigt(2),lambda,box_min,box_max,-1,dirv);
             af_v=evalampfunc_general((ow'*rv),sct_type,ampfunc,dim);
             e_v_ms=e_v.*af_v;
             if doCBS
@@ -243,7 +244,7 @@ for itr=1:maxItr
         u = u + tpath(:);
         
         if (pL==1)
-            us = u;
+            us = us + tpath(:);
         end
 
         % advance to the next scattering event

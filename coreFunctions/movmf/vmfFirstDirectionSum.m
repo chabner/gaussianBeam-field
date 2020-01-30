@@ -12,9 +12,7 @@ if(dim == 3)
     movmf.alpha = movmf.alpha.^2;
     
     kappa = sqrt(sum(movmf.mu.^2,3));
-    mu = movmf.mu ./ kappa;
-    mu(~isfinite(mu(:,:,1:2))) = 0;
-    mu(~isfinite(mu(:,:,3))) = 1;
+    mu = movmfAbsMu(movmf.mu);
     
     log_C = (dim/2-1)*log(kappa) - (dim/2)*log(2*pi) - logbesseli(kappa);
     log_C(kappa == 0) = - log(4*pi);

@@ -3,7 +3,7 @@ config.projectName = mfilename;
 %% Rendering
 
 % iterations to render single correlation image
-config.iterationsRender = 1e3;
+config.iterationsRender = 1e0;
 
 % t/f if use gpu (for fitting algorithm)
 config.useGpu = true;
@@ -12,7 +12,7 @@ config.mcGpu = true;
 % set rng before rendering.
 % comment to avoid seeting rng.
 % possible to rng 'shuffle'
-config.rng = 5;
+% config.rng = 5;
 
 %% Sample
 config.dimNum = 3;
@@ -25,8 +25,8 @@ config.boxAxial = 20;
 %% Aperture
 
 % mask of the gaussian lens
-config.mask_varL = 0.25;
-config.mask_varV = 0.25;
+config.mask_varL = 0.05;
+config.mask_varV = 0.05;
 
 % -------------
 
@@ -36,16 +36,16 @@ config.focalPointsV_plain = -config.boxDepth/2 - 0;
 
 % -------------
 % focal illumination points
-config.focalPointsL_base = -5:1:5;
+config.focalPointsL_base = 0:1:4;
 
 % -------------
 % focal view points
-config.focalPointsV_base = -6:0.125:6;
+config.focalPointsV_base = -15:0.5:15;
 
 % -------------
 % focal directions
-config.focalLDirections = 5 * deg2rad(-5:1:5);
-config.focalVDirections = 5 * deg2rad(5:-1:-5);
+config.focalLDirections = 5 * deg2rad(0:1:4);
+config.focalVDirections = 5 * deg2rad(0:1:4);
 
 %% Scattering fnuction
 
@@ -66,7 +66,7 @@ config.vmf_samples = 1e6;
 %% importance sampling
 % the tens digit is for direction, and the first digit is for position
 % choose 1 for random, and 3 for gaussian
-config.sampleFlag = 11;
+config.sampleFlag = 44;
 
 % kappa g parameter
-config.kappaG = 100;
+config.kappaG = 16;

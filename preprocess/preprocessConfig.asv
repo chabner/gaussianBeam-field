@@ -50,7 +50,7 @@ end
 
 %% Scattering function
 preprocessPath = which('vmfCache.mat');
-if(isempty(preprocessPath))
+if(is(preprocessPath))
     config.movmf = movmfBuild(config.sctType, config.ampfunc, config.dimNum, config.vmf_k, config.vmf_samples, config.vmf_iterations, config.useGpu);
     
     vmfCache(1).g = config.g;

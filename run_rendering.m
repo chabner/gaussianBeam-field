@@ -1,12 +1,13 @@
 function [u,us] = run_rendering(config) 
 
 if(config.mcGpu)    
-        config.focalPointsL = gpuArray(config.focalPointsL);
+%         config.focalPointsL = gpuArray(config.focalPointsL);
+%         config.focalDirectionsL = gpuArray(config.focalDirectionsL);
+%         config.box_min = gpuArray(config.box_min);
+%         config.box_max = gpuArray(config.box_max);
+        
         config.focalPointsV = gpuArray(config.focalPointsV);
-        config.focalDirectionsL = gpuArray(config.focalDirectionsL);
         config.focalDirectionsV = gpuArray(config.focalDirectionsV);
-        config.box_min = gpuArray(config.box_min);
-        config.box_max = gpuArray(config.box_max);
 end
 
 if(isfield(config,'rng'))

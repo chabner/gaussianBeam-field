@@ -12,7 +12,7 @@ function e = evalphaseatt(x,v,is_ff,sigt,lambda,box_min,box_max,vsign,dirv)
     if (is_ff)
         pv = x'*v;
         rv = ones(1,Nv);
-        bdv = cubeDist(x,box_min,box_max,-dirv);
+        bdv = cubeDist(x,box_min,box_max,-vsign * dirv);
     else
         d = repmat(x,1,Nv)-v;
         nd = sum(d.^2,1).^0.5;

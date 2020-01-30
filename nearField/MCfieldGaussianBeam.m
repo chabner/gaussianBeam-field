@@ -68,7 +68,7 @@ for itr=1:maxItr
             px = px * V; % The reson I multiple with V - same prob as uniform
             xRep = xRep + xMissIter;
     end
-     x
+%      x
     px = max(px,smpFunc(1).pxMin);
     
     dz = cubeDist(x,box_min,box_max,-dirl);

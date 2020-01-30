@@ -1,4 +1,4 @@
-function [conv_vmf]=movmfConv(apertureVmf,scatteringMovmf)
+function [conv_vmf]=movmfConv_notSure(apertureVmf,scatteringMovmf)
 % convolve aperture with scattering function
 
 % INPUT
@@ -9,39 +9,35 @@ function [conv_vmf]=movmfConv(apertureVmf,scatteringMovmf)
 % OUTPUT
 % conv_vmf: convolution result. movmf with N = 2.
 
+% !!!! Need to be checked for backscattering !!!!
+
+% if(apertureVmf.N ~= 2)
+%     error('Use this convolution only for two light sources!')
+% end
+
 if(apertureVmf.k ~= 1)
     error('Aperture is only one mixture')
 end
-
-% translate to mu-kappa representation
-apertureVmf.kappa = sqrt(sum(abs(apertureVmf.mu).^2,3));
-apertureVmf.mu = apertureVmf.mu ./ apertureVmf.kappa;
-
-scatteringMovmf.kappa = sqrt(sum(abs(scatteringMovmf.mu).^2,3));
-scatteringMovmf.mu = scatteringMovmf.mu ./ scatteringMovmf.kappa;
 
 dim = scatteringMovmf.dim;
 k = scatteringMovmf.k;
 N = apertureVmf.N;
 
-kappaMu = apertureVmf.kappa .* apertureVmf.mu;                   % kappaMu in size of [N,k,dim]
+kappaMu = apertureVmf.mu;                   % kappaMu in size of [N,k,dim]
 kappaMu_r = real(kappaMu);
-kappaMu_i = imag(kappaMu);
 kappa_r = sqrt(sum(kappaMu_r.*(conj(kappaMu_r)),3)); % kappa_r in size of [N,k]
-kappa_i = sqrt(sum(kappaMu_i.*(conj(kappaMu_i)),3)); % kappa_r in size of [N,k]
 mu_r = kappaMu_r ./ kappa_r;                         % mu_r in size of [N,k,dim]
-mu_i = kappaMu_i ./ kappa_i;                         % mu_r in size of [N,k,dim]
 
-mu_i(kappa_i == 0,:,:) = 0;
-mu_i(kappa_i == 0,:,end) = 1;
+% aperture_kappa = sqrt(sum(kappaMu.*(conj(kappaMu)),3)); % kappa_r in size of [N,k]
+% aperture_mu = kappaMu ./ aperture_kappa;                         % mu_r in size of [N,k,dim]
 
 conv_vmf.mu = zeros(N,k,3,class(kappaMu));
-conv_vmf.kappa = zeros(N,k,class(kappaMu));
 conv_vmf.alpha = zeros(N,k,class(kappaMu));
 conv_vmf.c = zeros(N,k,class(kappaMu));
 conv_vmf.N = apertureVmf.N;
 conv_vmf.k = k;
 conv_vmf.dim = dim;
+s_conv_kappa = zeros(N,k,class(kappaMu));
 
 if(dim == 3)
     % build rotation matrix that rotates mu_r to the north pole
@@ -75,21 +71,26 @@ if(dim == 3)
         R(3,1,tFactors) = 0; R(3,2,tFactors) = 0;
     end
     
-    % aperture to gaussian
+    % aperture to gaussian    
     pR = permute(R,[3,1,2]);
     rotatedMu = sum(pR .* apertureVmf.mu,3 );
+%     rotatedMu = sum(pR .* aperture_mu,3 );
     rotatedMu = permute(rotatedMu,[1,3,2]);
     
-    A1 = apertureVmf.kappa .* rotatedMu(:,:,3);
+%     A1 = apertureVmf.kappa .* rotatedMu(:,:,3);
+    A1 = rotatedMu(:,:,3);
     A1 = [A1,A1,0*A1];
     
-    B1 = apertureVmf.kappa .* permute(rotatedMu(:,:,1:2),[1,3,2]);
-    c1 = apertureVmf.kappa .* rotatedMu(:,:,3) + apertureVmf.c;
+%     B1 = apertureVmf.kappa .* permute(rotatedMu(:,:,1:2),[1,3,2]);
+%     c1 = apertureVmf.kappa .* rotatedMu(:,:,3) + apertureVmf.c;
+    
+    B1 = permute(rotatedMu(:,:,1:2),[1,3,2]);
+    c1 = rotatedMu(:,:,3) + apertureVmf.c;
     s1 = ones(apertureVmf.N,1,class(C));
     
     for vmfNum = 1:1:k
-        mu = permute(scatteringMovmf.mu(1,vmfNum,:),[1,3,2]);
-        kappa = scatteringMovmf.kappa(vmfNum);
+%         kappa = scatteringMovmf.kappa(1,vmfNum,end);  What about backscattering?!
+        kappa = abs(scatteringMovmf.mu(1,vmfNum,end));
         alpha = scatteringMovmf.alpha(vmfNum);
         c = scatteringMovmf.c(vmfNum);
 
@@ -154,7 +155,7 @@ if(dim == 3)
         conv_mu(conv_kappa == 0,3) = 1;
 
         conv_c = conv_g_c + log(conv_g_s) - conv_g_A(:,1);
-
+        
         % rotate back
         if(isa(R,'gpuArray'))
             conv_mu = pagefun(@mldivide,R,permute(conv_mu,[2,3,1]));
@@ -167,20 +168,25 @@ if(dim == 3)
 
         % build the vmf
         conv_vmf.mu(:,vmfNum,:) = conv_mu;
-        conv_vmf.kappa(:,vmfNum) = conv_kappa;
+%         conv_vmf.kappa(:,vmfNum) = conv_kappa;
+        s_conv_kappa(:,vmfNum) = conv_kappa;
         conv_vmf.alpha(:,vmfNum) = alpha;
         conv_vmf.c(:,vmfNum) = conv_c;
     end   
     
     % normlize to ideal result
     % take absolute
+    conv_vmf_abs = movmfAbs(conv_vmf);
+    
     % maximal direction is mu_r
-    w_max = movmfAbsMu(conv_vmf.kappa .* conv_vmf.mu);
+    w_max = conv_vmf_abs.mu;
     
     % maximal value in maximal direction
-    log_estimated_conv_max = conv_vmf.kappa .* (sum(conv_vmf.mu .* w_max,3)) + conv_vmf.c;
+%     log_estimated_conv_max = conv_vmf.kappa .* (sum(conv_vmf.mu .* w_max,3)) + conv_vmf.c;
+    log_estimated_conv_max = s_conv_kappa .* (sum(conv_vmf.mu .* w_max,3)) + conv_vmf.c;
     
-    C = sqrt(sum((kappaMu + scatteringMovmf.kappa .* w_max).^2,3));
+%     C = sqrt(sum((kappaMu + scatteringMovmf.kappa .* w_max).^2,3));
+    C = sqrt(sum((kappaMu + abs(scatteringMovmf.mu(:,:,end)) .* w_max).^2,3));
     
     c = apertureVmf.c + scatteringMovmf.c;
     log_exact_conv_max = c+C + log(2*pi) - log(C);
@@ -190,21 +196,9 @@ if(dim == 3)
 %     conv_vmf.c(validIdx) = conv_vmf.c(validIdx) - log(estimated_conv_max(validIdx)) + log(exact_conv_max(validIdx));
     conv_vmf.c = conv_vmf.c - log_estimated_conv_max + log_exact_conv_max;
     
-    conv_vmf.mu = conv_vmf.kappa .* conv_vmf.mu;
-    conv_vmf = rmfield(conv_vmf,'kappa');
+    conv_vmf.mu = s_conv_kappa .* conv_vmf.mu;
 else
     error('2D is not implemented yet')
-%     pdf_mog = sum(mog.alpha .* mog.s .* ...
-%         exp(-0.5*mog.A .* ux.^2 + mog.B .* ux + mog.c),2);
-    
-%     invSumA1A2 = 1 ./ (A1 + mog.A);
-% 
-%     conv_mog.A = mog.A .* invSumA1A2 .* A1;
-%     conv_mog.B = mog.B .* invSumA1A2 .* A1 + B1 .* invSumA1A2 .* mog.A;
-%     conv_mog.c = c1 + mog.c + ((B1 - mog.B).^2) .* invSumA1A2 / 2;
-%     conv_mog.s = s1 .* mog.s .* sqrt(((2*pi).^1) .* invSumA1A2);
-%     conv_mog.alpha = mog.alpha;
-%     conv_mog.k = mog.k;
 end
 
 end

@@ -25,10 +25,7 @@ Naperture = vmfApperture.N;
 kappaMu_r = gather(real(vmfApperture.mu));
 kappa_r = sqrt(sum(kappaMu_r.*(conj(kappaMu_r)),3));
 P0 = gather(-imag(vmfApperture.mu)/(2*pi));
-mu_r = kappaMu_r ./ kappa_r;
-
-mu_r(~isfinite(mu_r(:,:,1:2))) = 0;
-mu_r(~isfinite(mu_r(:,:,3))) = 1;
+mu_r = movmfAbsMu(kappaMu_r);
 
 P0 = permute(P0,[1,3,2]);
 mu_r = permute(mu_r,[1,3,2]);
