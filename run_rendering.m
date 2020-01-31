@@ -1,4 +1,4 @@
-function [u,us] = run_rendering(config) 
+function [u,us,xRep] = run_rendering(config) 
 
 if(config.mcGpu)    
 %         config.focalPointsL = gpuArray(config.focalPointsL);
@@ -14,7 +14,7 @@ if(isfield(config,'rng'))
 	rng(config.rng);
 end
 
-[u,us] = MCfieldGaussianBeam( ...
+[u,us,~,~,xRep] = MCfieldGaussianBeam( ...
   [1/config.scattgMFP,1/config.attMFP] , ... sigt
   1,                                     ... albedo
   config.box_min,                        ... box_min

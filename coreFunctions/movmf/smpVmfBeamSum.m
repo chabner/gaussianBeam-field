@@ -47,11 +47,11 @@ while(1)
     Pz = smpPreprocess(apertureNum).grid(icdf(cdfIdx));
     
     sigma_gal = sqrt(((kappa_g*mu_r_n(3))^2 + (2*pi*(Pz-P0_n(3))).^2)./(4*pi^2*kappa_g*mu_r_n(3)));
-    sigma_hat = sqrt(sigma_gal.^2 + 2*((P0_n(3) - Pz).^2)/kappa_r(1));
+    sigma_hat = sqrt(sigma_gal.^2 + ((P0_n(3) - Pz).^2)/kappa_r(1));
     P0_n_gal = P0_n(1:2) - 2 * (mu_r_n(1:2)/mu_r_n(3))*(P0_n(3)-Pz);
     
-    Px = normrnd(P0_n_gal(1), sigma_hat);
-    Py = normrnd(P0_n_gal(2), sigma_hat);
+    Px = normrnd(P0_n_gal(1), sigma_hat / sqrt(2));
+    Py = normrnd(P0_n_gal(2), sigma_hat / sqrt(2));
     
     if(any([Px;Py] < box_min(1:end-1)) || any([Px;Py] > box_max(1:end-1)))
         missX = missX + 1;
@@ -68,16 +68,16 @@ for lightNum = 1:1:Naperture
     prob_z = interp1(smpPreprocess(lightNum).grid, smpPreprocess(lightNum).pdf, Pz, 'linear', 1) / ...
         (smpPreprocess(lightNum).grid(2) - smpPreprocess(lightNum).grid(1));
     
-    mu_r_n = mu_r(apertureNum,:);
+    mu_r_n = mu_r(lightNum,:);
     P0_n = P0(lightNum,:);
-    kappa_g = smpPreprocess(apertureNum).kappa_g;
+    kappa_g = smpPreprocess(lightNum).kappa_g;
     
     sigma_gal = sqrt(((kappa_g*mu_r_n(3))^2 + (2*pi*(Pz-P0_n(3))).^2)./(4*pi^2*kappa_g*mu_r_n(3)));
-    sigma_hat = sqrt(sigma_gal.^2 + 2*((P0_n(3) - Pz).^2)/kappa_r(1));
+    sigma_hat = sqrt(sigma_gal.^2 + ((P0_n(3) - Pz).^2)/kappa_r(1));
     P0_n_gal = P0_n(1:2) - 2 * (mu_r_n(1:2)/mu_r_n(3))*(P0_n(3)-Pz);
     
-    prob_x = normpdf(Px,P0_n_gal(1),sigma_hat);
-    prob_y = normpdf(Py,P0_n_gal(2),sigma_hat);
+    prob_x = normpdf(Px,P0_n_gal(1),(sigma_hat/sqrt(2)));
+    prob_y = normpdf(Py,P0_n_gal(2),(sigma_hat/sqrt(2)));
 
     px = px + prob_x * prob_y * prob_z;
 end

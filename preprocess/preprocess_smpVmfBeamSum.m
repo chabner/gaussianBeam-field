@@ -24,9 +24,11 @@ for lightComp = 1:1:size(fp,2)
     mu3 = mu_n(3);
     
     sigma_gal = sqrt(((kappa_g*mu3)^2 + (2*pi*(sampleGridZ-P3)).^2)./(4*pi^2*kappa_g*mu3));
-    sigma_hat = sqrt(sigma_gal.^2 + 2*((P3 - sampleGridZ).^2)/kappa_r);
+    sigma_hat = sqrt(sigma_gal.^2 + ((P3 - sampleGridZ).^2)/kappa_r);
     
-    dz = cubeDist(P0_n,config.box_min,config.box_max,-1 * mu_n);
+    Pz = [P0_n(1:2) + 0 * sampleGridZ(:).' ; sampleGridZ(:).'];
+    
+    dz = cubeDist(Pz,config.box_min,config.box_max,-1 * mu_n);
     
     sampleZfunction = exp(-sigt * dz) .* (sigma_gal./sigma_hat).^2 .* ...
         exp(((kappa_g^2)/(4*pi^2) + ((sampleGridZ - P3)/mu3).^2) .* (1 - mu3^2) ./ sigma_gal.^2);
