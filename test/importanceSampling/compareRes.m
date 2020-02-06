@@ -1,23 +1,26 @@
 clear
 
+load('is_g09.mat')
+expirementType = expirementsRes;
+
 figure
-load('res_tmp_1.mat')
-expirementType = expirementsRes;
-subplot(3,1,1)
-imagesc(reshape(abs(expirementType.configFile11.C) ,  ...
-    size(expirementType.configFile11.C,1) , []) ./ ...
-    (expirementType.configFile11.itersNum + expirementType.configFile11.xRep));
+subplot(4,1,1)
+plotExpirement(expirementType.configFile11);
+colorbar
 
-load('res_tmp.mat')
-expirementType = expirementsRes;
+subplot(4,1,2)
+plotExpirement(expirementType.configFile14);
+colorbar
 
-subplot(3,1,2)
-imagesc(reshape(abs(expirementType.configFile44.C) ,  ...
-    size(expirementType.configFile44.C,1) , []) ./ ...
-    (expirementType.configFile44.itersNum + expirementType.configFile44.xRep));
+subplot(4,1,3)
+plotExpirement(expirementType.configFile44);
+colorbar
 
-subplot(3,1,3)
-imagesc(reshape(abs(expirementType.configFile14.C) ,  ...
-    size(expirementType.configFile14.C,1) , []) ./ ...
-    (expirementType.configFile14.itersNum + expirementType.configFile14.xRep));
+subplot(4,1,4)
+plotExpirement(expirementType.configFile44);
+colorbar
 
+
+function plotExpirement(expStr)
+    imagesc(reshape(abs(expStr.C ./ (expStr.itersNum + expStr.xRep)) , size(expStr.C,1) , []) );
+end

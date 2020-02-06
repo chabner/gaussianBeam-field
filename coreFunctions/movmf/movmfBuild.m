@@ -87,10 +87,7 @@ if(dim == 3)
 end
 
 if(sctType == 3)
-    g = ampfunc.g;
-    forwardWeight = ampfunc.forwardWeight;
-    hgVals = sqrt(forwardWeight * evaluateHG(vectors(:,end), g, 1, dim) + ...
-        (1- forwardWeight) * evaluateHG(vectors(:,end), -g, 1, dim));
+    hgVals = sqrt(evaluateHG(vectors(:,end), ampfunc, 1, dim));
     wtheta = normFactor.*hgVals;
 end
 

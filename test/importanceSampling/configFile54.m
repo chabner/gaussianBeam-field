@@ -66,7 +66,7 @@ config.vmf_samples = 1e6;
 %% importance sampling
 % the tens digit is for direction, and the first digit is for position
 % choose 1 for random, and 3 for gaussian
-config.sampleFlag = 14;
+config.sampleFlag = 54;
 
 % kappa g parameter
 config.kappaG = 100;

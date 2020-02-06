@@ -87,7 +87,9 @@ for itr=1:maxItr
         case 3
             [w,w0p] = vmfFirstDirection(conv_vmf_l0);
         case 4
-            [w,w0p] = vmfFirstDirectionSum(conv_vmf_l0,n);
+            [w,w0p] = vmfFirstDirectionSum(conv_vmf_l0);
+        case 5
+            [w,w0p] = vmfFirstDirectionSum_sameBeam(conv_vmf_l0,n);
     end
     
     % for each lighting direction, the viewing direction gets different

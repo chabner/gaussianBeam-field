@@ -1,10 +1,11 @@
-function [w0,w0p] = vmfFirstDirectionSum(movmf)
+function [w0,w0p] = vmfFirstDirectionSum_sameBeam(movmf,n)
 
 dim = movmf.dim;
 
 if(dim == 3)
     % normalize
     movmf = movmfAbs(movmf);
+    movmf = movmfPick(movmf,n);
     
     % square
     movmf.c = 2 * movmf.c;
@@ -25,15 +26,12 @@ if(dim == 3)
     movmf.alpha = alpha ./ sum(alpha,2);
     movmf.c = log_C;
     
-    n = randi(movmf.N);
-    movmfn = movmfPick(movmf,n);
-    
     % sample a direction
-    smpNum = datasample(1:1:numel(movmfn.alpha),1,'Weights',gather(movmfn.alpha));
+    smpNum = datasample(1:1:numel(movmf.alpha),1,'Weights',gather(movmf.alpha));
     w0 = vsamp(permute(gather(mu(1,smpNum,:)),[3,1,2]), gather(kappa(smpNum)), 1);
     
     % calculate probability
-    w0p = sqrt(mean(movmfPdf(movmf,w0)));
+    w0p = sqrt(movmfPdf(movmf,w0));
     
     w0 = w0(:);
 end

@@ -14,6 +14,6 @@ function af_v = evalampfunc_general(cosang, sct_type,ampfunc,dim)
 
        case {3,4}
            % HG scattering
-           af_v = sqrt(evaluateHG(cosang, ampfunc.g, 1, dim)); 
+           af_v = sqrt(evaluateHG(cosang, ampfunc, 1, dim)); 
     end
 end

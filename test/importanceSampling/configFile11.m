@@ -52,7 +52,7 @@ config.focalVDirections = 5 * deg2rad(0:1:4);
 % scattering type (only hg is implemented right now)
 % HG
 config.sctType = 3;
-config.g = 0.5; % HG parameter
+config.g = 0.9; % HG parameter
 config.forwardWeight = 1; % forward weight for hg scattering
 
 % wmf mixture settings
@@ -69,4 +69,4 @@ config.vmf_samples = 1e6;
 config.sampleFlag = 11;
 
 % kappa g parameter
-config.kappaG = 16;
+config.kappaG = 100;
