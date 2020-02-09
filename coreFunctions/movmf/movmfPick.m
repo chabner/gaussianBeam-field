@@ -9,9 +9,11 @@ function [movmf] = movmfPick(movmf,n)
 % OUTPUT
 % movmf: the mixtures which picked
 
-movmf.mu = movmf.mu(n,:,:);
-movmf.alpha = movmf.alpha(n,:);
-movmf.c = movmf.c(n,:);
-movmf.N = size(movmf.alpha,1);
+movmf.mu1 = movmf.mu1(:,n);
+movmf.mu2 = movmf.mu2(:,n);
+movmf.mu3 = movmf.mu3(:,n);
+movmf.alpha = movmf.alpha(:,n);
+movmf.c = movmf.c(:,n);
+movmf.dim = size(movmf.alpha);
 
 end

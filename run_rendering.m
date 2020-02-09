@@ -1,15 +1,5 @@
 function [u,us,xRep] = run_rendering(config) 
 
-if(config.mcGpu)    
-%         config.focalPointsL = gpuArray(config.focalPointsL);
-%         config.focalDirectionsL = gpuArray(config.focalDirectionsL);
-%         config.box_min = gpuArray(config.box_min);
-%         config.box_max = gpuArray(config.box_max);
-        
-        config.focalPointsV = gpuArray(config.focalPointsV);
-        config.focalDirectionsV = gpuArray(config.focalDirectionsV);
-end
-
 if(isfield(config,'rng'))
 	rng(config.rng);
 end
@@ -19,8 +9,8 @@ end
   1,                                     ... albedo
   config.box_min,                        ... box_min
   config.box_max,                        ... box_max
-  config.focalPointsL,                   ... xl
-  config.focalPointsV,                   ... xv
+  config.apertureVmf_l,                  ... apertureVmf_l
+  config.apertureVmf_v,                  ... apertureVmf_v
   1,                                     ... signl
   1,                                     ... signv
   config.mask_varL,                      ... varl
@@ -37,8 +27,7 @@ end
   config.ampfunc0                        ... ampfunc0
 );
 
-
-if(config.mcGpu)
+if(config.mcGpuV || config.mcGpuL)
     u = gather(u);
     us = gather(us);
 end

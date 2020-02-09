@@ -12,46 +12,40 @@ function [x,px,missX,apertureNum] = smpVmfBeamSum(vmfApperture,smpPreprocess,box
 % px - fist scatter position probability
 % missX - number of trials failed in x
 
-if(vmfApperture.dim ~= 3)
-    error('working only in 3D')
-end
-
 missX = 0;
 
 %% sample first scatterer
-Naperture = vmfApperture.N;
+Naperture = vmfApperture.dim(2);
 
 % sample (x,y)
-kappaMu_r = gather(real(vmfApperture.mu));
-kappa_r = sqrt(sum(kappaMu_r.*(conj(kappaMu_r)),3));
-P0 = gather(-imag(vmfApperture.mu)/(2*pi));
-mu_r = movmfAbsMu(kappaMu_r);
-
-P0 = permute(P0,[1,3,2]);
-mu_r = permute(mu_r,[1,3,2]);
+[mu_r1, mu_r2, mu_r3, kappa_r] = movmfAbsMu(vmfApperture);
+kappa_r = kappa_r(1);
+P0_x = -imag(vmfApperture.mu1)/(2*pi);
+P0_y = -imag(vmfApperture.mu2)/(2*pi);
+P0_z = -imag(vmfApperture.mu3)/(2*pi);
 
 while(1)
     % sample one of the apertures
     apertureNum = randi(Naperture);
-    
-    kappa_g = smpPreprocess(apertureNum).kappa_g;
+    kappa_g = smpPreprocess.kappa_g;
 
-    icdf = smpPreprocess(apertureNum).icdf;
+    icdf = smpPreprocess.icdf(apertureNum,:);
     NzSamples=length(icdf);
     
-    mu_r_n = mu_r(apertureNum,:);
-    P0_n = P0(apertureNum,:);
+    mu_r_n1 = mu_r1(apertureNum); mu_r_n2 = mu_r2(apertureNum); mu_r_n3 = mu_r3(apertureNum);
+    P0_n_x = P0_x(apertureNum); P0_n_y = P0_y(apertureNum); P0_n_z = P0_z(apertureNum);
     
     % sample z
     cdfIdx=ceil(rand*NzSamples);
-    Pz = smpPreprocess(apertureNum).grid(icdf(cdfIdx));
+    Pz = smpPreprocess.grid(icdf(cdfIdx));
     
-    sigma_gal = sqrt(((kappa_g*mu_r_n(3))^2 + (2*pi*(Pz-P0_n(3))).^2)./(4*pi^2*kappa_g*mu_r_n(3)));
-    sigma_hat = sqrt(sigma_gal.^2 + ((P0_n(3) - Pz).^2)/kappa_r(1));
-    P0_n_gal = P0_n(1:2) - 2 * (mu_r_n(1:2)/mu_r_n(3))*(P0_n(3)-Pz);
+    sigma_gal = sqrt(((kappa_g*mu_r_n3)^2 + (2*pi*(Pz-P0_n_z)).^2)./(4*pi^2*kappa_g*mu_r_n3));
+    sigma_hat = sqrt(sigma_gal.^2 + ((P0_n_z - Pz).^2)/kappa_r);
+    P0_n_gal_x = P0_n_x - 2 * (mu_r_n1/mu_r_n3)*(P0_n_z-Pz);
+    P0_n_gal_y = P0_n_y - 2 * (mu_r_n2/mu_r_n3)*(P0_n_z-Pz);
     
-    Px = normrnd(P0_n_gal(1), sigma_hat / sqrt(2));
-    Py = normrnd(P0_n_gal(2), sigma_hat / sqrt(2));
+    Px = normrnd(P0_n_gal_x, sigma_hat / sqrt(2));
+    Py = normrnd(P0_n_gal_y, sigma_hat / sqrt(2));
     
     if(any([Px;Py] < box_min(1:end-1)) || any([Px;Py] > box_max(1:end-1)))
         missX = missX + 1;
@@ -62,27 +56,21 @@ while(1)
 end
 
 x = [Px;Py;Pz];
-px = 0;
 
-for lightNum = 1:1:Naperture
-    prob_z = interp1(smpPreprocess(lightNum).grid, smpPreprocess(lightNum).pdf, Pz, 'linear', 1) / ...
-        (smpPreprocess(lightNum).grid(2) - smpPreprocess(lightNum).grid(1));
-    
-    mu_r_n = mu_r(lightNum,:);
-    P0_n = P0(lightNum,:);
-    kappa_g = smpPreprocess(lightNum).kappa_g;
-    
-    sigma_gal = sqrt(((kappa_g*mu_r_n(3))^2 + (2*pi*(Pz-P0_n(3))).^2)./(4*pi^2*kappa_g*mu_r_n(3)));
-    sigma_hat = sqrt(sigma_gal.^2 + ((P0_n(3) - Pz).^2)/kappa_r(1));
-    P0_n_gal = P0_n(1:2) - 2 * (mu_r_n(1:2)/mu_r_n(3))*(P0_n(3)-Pz);
-    
-    prob_x = normpdf(Px,P0_n_gal(1),(sigma_hat/sqrt(2)));
-    prob_y = normpdf(Py,P0_n_gal(2),(sigma_hat/sqrt(2)));
+prob_z = interp1(smpPreprocess.grid, smpPreprocess.pdf', Pz, 'linear', 1) / ...
+    (smpPreprocess.grid(2) - smpPreprocess.grid(1));
 
-    px = px + prob_x * prob_y * prob_z;
-end
 
-px = px / Naperture;
+sigma_gal = sqrt(((kappa_g*mu_r3).^2 + (2*pi*(Pz-P0_z)).^2)./(4*pi^2*kappa_g*mu_r3));
+sigma_hat = sqrt(sigma_gal.^2 + ((P0_z - Pz).^2)/kappa_r);
+P0_gal_x = P0_x - 2 * (mu_r1./mu_r3).*(P0_z-Pz);
+P0_gal_y = P0_y - 2 * (mu_r2./mu_r3).*(P0_z-Pz);
+
+prob_x = normpdf(Px,P0_gal_x,(sigma_hat/sqrt(2)));
+prob_y = normpdf(Py,P0_gal_y,(sigma_hat/sqrt(2)));
+
+px = mean(prob_x .* prob_y .* prob_z);
+
 
 end
 

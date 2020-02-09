@@ -1,6 +1,6 @@
 clear
 
-load('is_g09.mat')
+load('res_tmp.mat')
 expirementType = expirementsRes;
 
 figure

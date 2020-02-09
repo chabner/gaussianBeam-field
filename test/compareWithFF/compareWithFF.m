@@ -1,6 +1,7 @@
 clear
 
-run(['test',filesep,'compareWithFF',filesep,'configFile.m']);
+% run(['test',filesep,'compareWithFF',filesep,'configFile.m']);
+run('configFile.m');
 config = preprocessConfig(config);
 [u_nf,us_nf] = run_rendering(config);
 

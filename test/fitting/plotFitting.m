@@ -21,8 +21,8 @@ movmfVals = movmfPdf(vmfCache(n).movmf,vectors);
 
 figure
 subplot(2,1,1)
-plot(theta,pf,theta,movmfVals);
-legend(['HG, g = ',num2str(ampfunc.g)],[num2str(vmfCache(n).movmf.k),' mixtures'])
+plot(theta,pf,theta,squeeze(movmfVals));
+legend(['HG, g = ',num2str(ampfunc.g)],[num2str(vmfCache(n).movmf.dim(1)),' mixtures'])
 title('full')
 
 %%
@@ -39,8 +39,8 @@ vectors = [X(:),Y(:),Z(:)];
 movmfVals = movmfPdf(vmfCache(n).movmf,vectors);
 
 subplot(2,1,2)
-plot(theta,pf,theta,movmfVals);
-legend(['HG, g = ',num2str(ampfunc.g)],[num2str(vmfCache(n).movmf.k),' mixtures'])
+plot(theta,pf,theta,squeeze(movmfVals));
+legend(['HG, g = ',num2str(ampfunc.g)],[num2str(vmfCache(n).movmf.dim(1)),' mixtures'])
 title('zoom')
 
 end

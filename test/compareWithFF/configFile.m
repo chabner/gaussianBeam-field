@@ -7,7 +7,8 @@ config.iterationsRender = 1e3;
 
 % t/f if use gpu (for fitting algorithm)
 config.useGpu = true;
-config.mcGpu = true;
+config.mcGpuV = true;
+config.mcGpuL = false;
 
 % set rng before rendering.
 % comment to avoid seeting rng.
@@ -44,8 +45,8 @@ config.focalPointsV_base = -6:0.125:6;
 
 % -------------
 % focal directions
-config.focalLDirections = 5 * deg2rad(-5:1:5);
-config.focalVDirections = 5 * deg2rad(5:-1:-5);
+config.focalLDirections = 1 * deg2rad(-5:1:5);
+config.focalVDirections = 1 * deg2rad(5:-1:-5);
 
 %% Scattering fnuction
 

@@ -170,28 +170,29 @@ end
 
 %% Build the movmf
 kappa = gather(kappa);
-mu = permute(gather(mu),[3,1,2]);
-
-movmf.mu = kappa .* mu;
-movmf.c = (dim/2-1)*log(kappa) - (dim/2)*log(2*pi) - logbesseli(kappa);
-
-if(dim == 2)
-    movmf.c(kappa == 0) = - log(2*pi);
-else
-    movmf.c(kappa == 0) = - log(4*pi);
-end
+mu = gather(mu);
+alpha = gather(alpha);
+c = (dim/2-1)*log(kappa) - (dim/2)*log(2*pi) - logbesseli(kappa);
+c(kappa == 0) = - log(4*pi);
 
 meanVals = 0;
-
 for kNum = 1:1:k
-    mu_k = permute(mu(1,kNum,:),[1,3,2]);
+    mu_k = mu(kNum,:);
     meanVals = meanVals + mean(alpha(kNum) * ...
-        exp(kappa(kNum) * mu_k * vectors.' + movmf.c(kNum)) .* ...
+        exp(kappa(kNum) * mu_k * vectors.' + c(kNum)) .* ...
         sqrt(1-vectors(:,3).^2).');
 end
-movmf.alpha = (hgMean/gather(meanVals)) * gather(alpha);
-movmf.k = numel(movmf.alpha);
-movmf.N = 1;
-movmf.dim = dim;
+
+meanVals = gather(meanVals);
+
+alpha = (hgMean/meanVals) * alpha;
+kappaMu = kappa .* mu.';
+
+movmf.mu1 = kappaMu(1,:).';
+movmf.mu2 = kappaMu(2,:).';
+movmf.mu3 = kappaMu(3,:).';
+movmf.alpha = alpha(:);
+movmf.c = c(:);
+movmf.dim = size(movmf.alpha);
 
 end

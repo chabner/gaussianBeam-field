@@ -3,6 +3,11 @@ function config = preprocessConfig(config)
 config.box_min = [-config.boxAxial/2;-config.boxAxial/2;-config.boxDepth/2];
 config.box_max = [config.boxAxial/2;config.boxAxial/2;config.boxDepth/2];
 
+if(config.mcGpuL)
+    config.box_min = gpuArray(config.box_min);
+    config.box_max = gpuArray(config.box_max);
+end
+
 %% Aperture
 % Focal points
 config.focalPointsL = [config.focalPointsL_base; ...
@@ -40,6 +45,19 @@ else
         config.focalVDirections .^ 0 ];
 end
 
+if(config.mcGpuL)
+    config.focalPointsL = gpuArray(config.focalPointsL);
+    config.focalDirectionsL = gpuArray(config.focalDirectionsL);
+end
+
+if(config.mcGpuV)
+    config.focalPointsV = gpuArray(config.focalPointsV);
+    config.focalDirectionsV = gpuArray(config.focalDirectionsV);
+end
+
+config.apertureVmf_l = movmfAperture(config.mask_varL,config.focalPointsL,-1,config.focalDirectionsL,2,2);
+config.apertureVmf_v = movmfAperture(config.mask_varV,config.focalPointsV,1,config.focalDirectionsV,3,2);
+
 %% Scattering function
 if(config.sctType == 3)
     config.sct_type = 3;
@@ -48,7 +66,7 @@ if(config.sctType == 3)
     config.ampfunc0 = inf;
 end
 
-%% Scattering function
+%% Scattering function - throughput
 preprocessPath = which('vmfCache.mat');
 if(isempty(preprocessPath))
     config.movmf = movmfBuild(config.sctType, config.ampfunc, config.dimNum, config.vmf_k, config.vmf_samples, config.vmf_iterations, config.useGpu);
@@ -63,7 +81,7 @@ if(isempty(preprocessPath))
     currentFilePath = which('preprocessConfig.m');
     currentFileFolder = regexp(currentFilePath,'C*[\/\\]preprocessConfig.m');
     
-    save([currentFileFolder,filesep,'vmfCache.mat'],'vmfCache');
+    save([currentFilePath(1:currentFileFolder),'vmfCache.mat'],'vmfCache');
 else
     load(preprocessPath,'vmfCache')
     
@@ -101,7 +119,7 @@ end
 % Sample 100 different samples, and take the median of px, in order to
 % estimate bad samples
 pxItersNum = 100;
-minTorr = 1e-2;
+minTorr = 1e-3;
 
 box_w = config.box_max-config.box_min;
 V=prod(box_w);
@@ -131,7 +149,7 @@ for iterNum = 1:1:pxItersNum
         px(iterNum) = px(iterNum) * V;
     case 4
         % gaussian sampling
-        apertureVmf_l = movmfAperture(config.mask_varL,config.focalPointsL,-1,config.focalDirectionsL);
+        apertureVmf_l = movmfAperture(config.mask_varL,config.focalPointsL,-1,config.focalDirectionsL,2,2);
         [~,px(iterNum)] = smpVmfBeamSum(apertureVmf_l,config.smpPreprocess,config.box_min,config.box_max);
         px(iterNum) = px(iterNum) * V;
     end

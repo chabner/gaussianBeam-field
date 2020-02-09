@@ -3,18 +3,20 @@ function [p] = movmfPdf(movmf,x)
 %
 % INPUT
 % movmf: mixture of von Mises-Fisher structre
-% x    : [M,movmf.dim] desired direction to calculate the pdf
+% x    : [M,3] desired direction to calculate the pdf
 %
 % OUTPUT
 % p: [movmf.N,M] the pdf result
 
-mu = permute(movmf.mu,[1,4,2,3]);     % mu in size of [N,1,k,dim]
-x = permute(x,[3,1,4,2]);             % x in size of [1,M,1,dim]
-muTimesX = sum(mu.*x,4);              % muTimesX in size of [N,M,k]
-alpha = permute(movmf.alpha,[1,3,2]); % alpha in size of [N,1,k]
-c = permute(movmf.c,[1,3,2]);         % c in size of [N,1,k]
+Ndim = numel(movmf.dim);
 
-p = sum(alpha .* exp(muTimesX + c) , 3);
+x_1 = x(:,1); x_1 = x_1(:); x_1 = permute(x_1,[2:1:(Ndim+1),1]);
+x_2 = x(:,2); x_2 = x_2(:); x_2 = permute(x_2,[2:1:(Ndim+1),1]);
+x_3 = x(:,3); x_3 = x_3(:); x_3 = permute(x_3,[2:1:(Ndim+1),1]);
+
+muTimesX = movmf.mu1.*x_1 + movmf.mu2.*x_2 + movmf.mu3.*x_3;
+
+p = sum(movmf.alpha .* exp(muTimesX + movmf.c) , 1);
 
 end
 

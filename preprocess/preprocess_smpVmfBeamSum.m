@@ -10,10 +10,10 @@ kappa_g = config.kappaG;
 
 fp = config.focalPointsL;
 
-prepocessRes(size(fp,2)).grid = [];
-prepocessRes(size(fp,2)).pdf = [];
-prepocessRes(size(fp,2)).icdf = [];
-prepocessRes(size(fp,2)).kappa_g = [];
+prepocessRes.grid = sampleGridZ;
+prepocessRes.pdf = zeros(size(fp,2),zSamplesNum);
+prepocessRes.icdf = zeros(size(fp,2),zSamplesNum);
+prepocessRes.kappa_g = kappa_g;
 
 
 for lightComp = 1:1:size(fp,2)
@@ -38,10 +38,8 @@ for lightComp = 1:1:size(fp,2)
 
     preprocessZiCdf = cumsum(hist(zCdf,numel(zCdf)));
     
-    prepocessRes(lightComp).grid = sampleGridZ;
-    prepocessRes(lightComp).pdf = preprocessPdf;
-    prepocessRes(lightComp).icdf = preprocessZiCdf;
-    prepocessRes(lightComp).kappa_g = kappa_g;
+    prepocessRes.pdf(lightComp,:) = preprocessPdf;
+    prepocessRes.icdf(lightComp,:) = preprocessZiCdf;
 end
 
 end

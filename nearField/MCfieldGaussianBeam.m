@@ -1,4 +1,4 @@
-function [u,us,um,u_nomean,xRep,wRep]=MCfieldGaussianBeam(sigt,albedo,box_min,box_max,xl,xv,signl,signv,varl,varv,dirl,dirv,maxItr,lambda,smpFlg,smpFunc,movmf,sct_type,ampfunc,ampfunc0)
+function [u,us,um,u_nomean,xRep,wRep]=MCfieldGaussianBeam(sigt,albedo,box_min,box_max,apertureVmf_l,apertureVmf_v,signl,signv,varl,varv,dirl,dirv,maxItr,lambda,smpFlg,smpFunc,movmf,sct_type,ampfunc,ampfunc0)
 %xl: a 3xNl or 2xNl vector of positions of where beam is focused (do not have to be
 %on a gread)
 %xv: 3xNv or 2xNv, center of viewing beam
@@ -18,26 +18,25 @@ dim = size(box_min,1);
 
 unmeanl = [0;0;1];
 
-Nl = size(xl,2);
-Nv = size(xv,2);
+% Nl = size(xl,2);
+% Nv = size(xv,2);
 
 %% Prepare for algorithm
 
 % Initiate output parameters
-u = zeros(Nv,Nl,class(xv));
-us =zeros(Nv,Nl,class(xv));
+% u = zeros(Nv,Nl,class(xv));
+% us =zeros(Nv,Nl,class(xv));
+
+u = 0;
+us = 0;
 
 
 % Box size
 box_w = box_max-box_min;
 V=prod(box_w);
 
-apertureVmf_l = movmfAperture(varl,xl,-1,dirl);
-
-apertureVmf_v = cell(1,Nl);
-for lightNum = 1:1:Nl
-    apertureVmf_v{lightNum} = movmfAperture(varv,xv,1,dirv(:,lightNum));
-end
+% apertureVmf_l = movmfAperture(varl,xl,-1,dirl,2,2);
+% apertureVmf_v = movmfAperture(varv,xv,1,dirv,3,2);
 
 % threshold to begin kill particles with low weight
 killThr=0.2;
@@ -96,17 +95,17 @@ for itr=1:maxItr
     % direction
     
     randPhase = exp(2*pi*1i*rand);
-    
-    for lightNum = 1:1:Nl
-        dz = cubeDist(x,box_min,box_max,dirv(:,lightNum));
-        throughputVmf_v = movmfThroughput(apertureVmf_v{lightNum},x,signv,sigt(2),dz);
-        movmf_mult = movmfMultiple(movmfPick(conv_vmf_l0,lightNum),throughputVmf_v,true,false);
-        integrateMult = movmfIntegrate(movmf_mult);
-        us(:,lightNum) = us(:,lightNum) + integrateMult * randPhase / sqrt(px);
-    end
+
+    dz = cubeDist(x,box_min,box_max,dirv);
+    throughputVmf_v = movmfThroughput(apertureVmf_v,x,signv,sigt(2),dz);
+    movmf_mult = movmfMultiple(conv_vmf_l0,throughputVmf_v,false);
+    integrateMult = movmfIntegrate(movmf_mult);
+    us = us + permute(integrateMult,[3,2,1]) * randPhase / sqrt(px);
     
     rotatedMovmf_l = movmf;
-    rotatedMovmf_l.mu = sign(rotatedMovmf_l.mu(:,:,3)) .* reshape(w,1,1,[]);
+    rotatedMovmf_l.mu1 = sign(rotatedMovmf_l.mu3) .* w(1);
+    rotatedMovmf_l.mu2 = sign(rotatedMovmf_l.mu3) .* w(2);
+    rotatedMovmf_l.mu3 = sign(rotatedMovmf_l.mu3) .* w(3);
     
     throughputVmf_l_times_movmf = movmfMultiple(throughputVmf_l,rotatedMovmf_l,true);
     el = movmfIntegrate(throughputVmf_l_times_movmf) / w0p;
@@ -130,16 +129,15 @@ for itr=1:maxItr
 
             % rotate the scattering function on direction of ow
             rotatedMovmf_v = movmf;
-            rotatedMovmf_v.mu = sign(rotatedMovmf_v.mu(:,:,3)) .* reshape(ow,1,1,[]);
+            rotatedMovmf_v.mu1 = sign(rotatedMovmf_v.mu3) .* ow(1);
+            rotatedMovmf_v.mu2 = sign(rotatedMovmf_v.mu3) .* ow(2);
+            rotatedMovmf_v.mu3 = sign(rotatedMovmf_v.mu3) .* ow(3);
             
-            for lightNum = 1:1:Nl
-                dz = cubeDist(x,box_min,box_max,dirv(:,lightNum));
-                throughputVmf_v = movmfThroughput(apertureVmf_v{lightNum},x,signv,sigt(2),dz);
-                throughputVmf_v_times_movmf = movmfMultiple(throughputVmf_v,rotatedMovmf_v,true);
-                ev = movmfIntegrate(throughputVmf_v_times_movmf);
-                u(:,lightNum) = u(:,lightNum)+ev(:)*el(lightNum)/sqrt(px) * randPhase;
-            end
-            
+            dz = cubeDist(x,box_min,box_max,dirv);
+            throughputVmf_v = movmfThroughput(apertureVmf_v,x,signv,sigt(2),dz);
+            throughputVmf_v_times_movmf = movmfMultiple(throughputVmf_v,rotatedMovmf_v,true);
+            ev = movmfIntegrate(throughputVmf_v_times_movmf);
+            u = u + permute(ev,[3,2,1]) .* el / sqrt(px) * randPhase;
         end
 
        

@@ -1,35 +1,33 @@
-function [apertureVmf] = movmfAperture(aperuteStd,focalPoints,focalPointsSign,direction)
+function [apertureVmf] = movmfAperture(aperuteStd,focalPoints,focalPointsSign,direction,focalPointDim,directionDim)
 % Build vmf aperture
 %
 % INPUT:
 % aperuteStd: std of the aperture.
-% focalPoints: all the focal points, size of [dim,N]
+% focalPoints: all the focal points, size of [3,N]
 % focalPointsSign: +/- 1
-% direction: aperture direction [dim,N]
+% direction: aperture direction [3,N]
 %
 % OUTPUT:
 % apertureVmf: vmf of the aperture, size of N.
 
-N = size(focalPoints,2);
-dim = size(focalPoints,1);
+direction_1 = direction(1,:); direction_1 = direction_1(:); direction_1 = shiftdim(direction_1,-directionDim+1);
+direction_2 = direction(2,:); direction_2 = direction_2(:); direction_2 = shiftdim(direction_2,-directionDim+1);
+direction_3 = direction(3,:); direction_3 = direction_3(:); direction_3 = shiftdim(direction_3,-directionDim+1);
 
-if(nargin < 4)
-    direction = zeros(dim,N);
-    direction(end,:) = 1;
-end
+focalPoint_1 = focalPoints(1,:); focalPoint_1 = focalPoint_1(:); focalPoint_1 = shiftdim(focalPoint_1,-focalPointDim+1);
+focalPoint_2 = focalPoints(2,:); focalPoint_2 = focalPoint_2(:); focalPoint_2 = shiftdim(focalPoint_2,-focalPointDim+1);
+focalPoint_3 = focalPoints(3,:); focalPoint_3 = focalPoint_3(:); focalPoint_3 = shiftdim(focalPoint_3,-focalPointDim+1);
 
-apertureVmf.dim = dim;
-apertureVmf.N = N;
-apertureVmf.k = 1;
+apertureVmf.mu1 = 1/(aperuteStd^2) * direction_1 + focalPointsSign * 2 * pi * 1i * focalPoint_1;
+apertureVmf.mu2 = 1/(aperuteStd^2) * direction_2 + focalPointsSign * 2 * pi * 1i * focalPoint_2;
+apertureVmf.mu3 = 1/(aperuteStd^2) * direction_3 + focalPointsSign * 2 * pi * 1i * focalPoint_3;
 
-mu = 1/(aperuteStd^2) * direction.' + focalPointsSign * 2 * pi * 1i * focalPoints.';
-apertureVmf.mu = permute(mu,[1,3,2]);
+kappa_r = sqrt(real(apertureVmf.mu1).^2 + real(apertureVmf.mu2).^2 + real(apertureVmf.mu3).^2);
 
-mu_r = real(mu);
-kappa_r = sqrt(sum(abs(mu_r).^2,2));
-% apertureVmf.c = (dim/2-1)*log(kappa_r) - (dim/2)*log(2*pi) - logbesseli(dim/2-1,kappa_r);
 apertureVmf.c = ones(size(kappa_r)) * ...
-    ((dim/2-1)*log(kappa_r(1)) - (dim/2)*log(2*pi) - logbesseli(kappa_r(1)));
-apertureVmf.alpha = ones(N,1,class(focalPoints));
+    ((3/2-1)*log(kappa_r(1)) - (3/2)*log(2*pi) - logbesseli(kappa_r(1)));
+apertureVmf.alpha = apertureVmf.c.^0;
+
+apertureVmf.dim = size(apertureVmf.alpha);
 
 end
