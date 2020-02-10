@@ -32,11 +32,4 @@ if(config.mcGpuV || config.mcGpuL)
     us = gather(us);
 end
 
-Nv = numel(config.focalPointsV_base);
-Nl = numel(config.focalPointsL_base);
-
-u = reshape(u,Nv,Nv,Nl);
-us = reshape(us,Nv,Nv,Nl);
-
-
 end

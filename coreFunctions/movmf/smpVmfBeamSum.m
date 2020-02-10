@@ -15,7 +15,7 @@ function [x,px,missX,apertureNum] = smpVmfBeamSum(vmfApperture,smpPreprocess,box
 missX = 0;
 
 %% sample first scatterer
-Naperture = vmfApperture.dim(2);
+Naperture = prod(vmfApperture.dim(2:end));
 
 % sample (x,y)
 [mu_r1, mu_r2, mu_r3, kappa_r] = movmfAbsMu(vmfApperture);
@@ -29,7 +29,7 @@ while(1)
     apertureNum = randi(Naperture);
     kappa_g = smpPreprocess.kappa_g;
 
-    icdf = smpPreprocess.icdf(apertureNum,:);
+    icdf = smpPreprocess.icdf(:,apertureNum);
     NzSamples=length(icdf);
     
     mu_r_n1 = mu_r1(apertureNum); mu_r_n2 = mu_r2(apertureNum); mu_r_n3 = mu_r3(apertureNum);
@@ -57,7 +57,7 @@ end
 
 x = [Px;Py;Pz];
 
-prob_z = interp1(smpPreprocess.grid, smpPreprocess.pdf', Pz, 'linear', 1) / ...
+prob_z = interp1(smpPreprocess.grid, smpPreprocess.pdf, Pz, 'linear', 1) / ...
     (smpPreprocess.grid(2) - smpPreprocess.grid(1));
 
 
@@ -69,7 +69,7 @@ P0_gal_y = P0_y - 2 * (mu_r2./mu_r3).*(P0_z-Pz);
 prob_x = normpdf(Px,P0_gal_x,(sigma_hat/sqrt(2)));
 prob_y = normpdf(Py,P0_gal_y,(sigma_hat/sqrt(2)));
 
-px = mean(prob_x .* prob_y .* prob_z);
+px = mean(prob_x(:) .* prob_y(:) .* prob_z(:));
 
 
 end

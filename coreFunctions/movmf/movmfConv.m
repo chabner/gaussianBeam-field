@@ -58,7 +58,7 @@ conv_vmf.mu2 = R_12 .* conv_mu1 + R_22 .* conv_mu2 + R_32 .* conv_mu3;
 conv_vmf.mu3 = R_13 .* conv_mu1 + R_23 .* conv_mu2 + R_33 .* conv_mu3;
 
 % build the vmf
-conv_vmf.alpha = repmat(scatteringMovmf.alpha,1,apertureVmf.dim(2));
+conv_vmf.alpha = repmat(scatteringMovmf.alpha,[1,apertureVmf.dim(2:end)]);
 conv_vmf.c = conv_c;
 
 conv_vmf.dim = size(conv_vmf.alpha);

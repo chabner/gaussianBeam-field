@@ -100,7 +100,7 @@ for itr=1:maxItr
     throughputVmf_v = movmfThroughput(apertureVmf_v,x,signv,sigt(2),dz);
     movmf_mult = movmfMultiple(conv_vmf_l0,throughputVmf_v,false);
     integrateMult = movmfIntegrate(movmf_mult);
-    us = us + permute(integrateMult,[3,2,1]) * randPhase / sqrt(px);
+    us = us + integrateMult * randPhase / sqrt(px);
     
     rotatedMovmf_l = movmf;
     rotatedMovmf_l.mu1 = sign(rotatedMovmf_l.mu3) .* w(1);
@@ -137,7 +137,7 @@ for itr=1:maxItr
             throughputVmf_v = movmfThroughput(apertureVmf_v,x,signv,sigt(2),dz);
             throughputVmf_v_times_movmf = movmfMultiple(throughputVmf_v,rotatedMovmf_v,true);
             ev = movmfIntegrate(throughputVmf_v_times_movmf);
-            u = u + permute(ev,[3,2,1]) .* el / sqrt(px) * randPhase;
+            u = u + ev .* el / sqrt(px) * randPhase;
         end
 
        

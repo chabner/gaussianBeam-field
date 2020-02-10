@@ -29,5 +29,5 @@ apertureVmf.c = ones(size(kappa_r)) * ...
 apertureVmf.alpha = apertureVmf.c.^0;
 
 apertureVmf.dim = size(apertureVmf.alpha);
-
+apertureVmf.dirDim = directionDim;
 end

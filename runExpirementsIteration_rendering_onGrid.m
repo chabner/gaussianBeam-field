@@ -8,16 +8,19 @@ for iterNum = 1:1:1e3
         
         run([allExpirements(expirementFile).folder,filesep,allExpirements(expirementFile).name]);
 
-        config = preprocessConfig(config);
-        Nv = numel(config.focalPointsV_base);
-        Nl = numel(config.focalPointsL_base);
-        
+        config = preprocessConfig_onGrid(config);
+        dimVec = [numel(config.focalPoints_base), ...
+            numel(config.focalPoints_base), ...
+            numel(config.focalPoints_plain), ...
+            numel(config.focalLDirections), ...
+            numel(config.focalLDirections), ...
+            numel(config.focalVDirections), ...
+            numel(config.focalVDirections)
+            ];
         tic
         [u,us] = run_rendering(config);
-        u = reshape(u,Nl,Nv,Nv);
-        us = reshape(us,Nl,Nv,Nv);
-        u = permute(u,[2,3,1]);
-        us = permute(us,[2,3,1]);
+        u = reshape(u,dimVec);
+        us = reshape(us,dimVec);
         t = toc
 
         T = datetime('now','Format','ddMM_HHmmss_SSS');

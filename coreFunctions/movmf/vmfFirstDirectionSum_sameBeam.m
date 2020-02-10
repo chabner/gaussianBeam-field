@@ -22,7 +22,7 @@ alpha_1_2 = abs(movmf.alpha);
 
 alpha = alpha_1_2 .* exp(c_1_2 - log_C);
 
-movmf.alpha = alpha ./ sum(alpha,2);
+movmf.alpha = alpha;
 movmf.c = log_C;
 
 % sample a direction
