@@ -27,7 +27,7 @@ movmf.c = log_C;
 
 % sample a direction
 smpNum = datasample(1:1:movmf.dim(1),1,'Weights',gather(movmf.alpha));
-w0 = vsamp([mu_r1(smpNum);mu_r2(smpNum);mu_r3(smpNum)], gather(kappa(smpNum)), 1);
+w0 = vsamp(gather([mu_r1(smpNum);mu_r2(smpNum);mu_r3(smpNum)]), gather(kappa(smpNum)), 1);
 
 % calculate probability
 w0p = sqrt(movmfPdf(movmf,w0));

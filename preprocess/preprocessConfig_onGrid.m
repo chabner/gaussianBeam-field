@@ -129,7 +129,7 @@ if(mod(config.sampleFlag,10) == 4)
     config.smpPreprocess = preprocess_smpVmfBeamSum(config,1e2);
 end
 
-px = zeros(1,pxItersNum);
+px = zeros(1,pxItersNum,class(config.apertureVmf_l.alpha));
 
 for iterNum = 1:1:pxItersNum
     switch mod(config.sampleFlag,10)

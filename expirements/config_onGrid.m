@@ -8,7 +8,7 @@ config.iterationsRender = 1e2;
 % t/f if use gpu (for fitting algorithm)
 config.useGpu = true;
 config.mcGpuV = true;
-config.mcGpuL = false;
+config.mcGpuL = true;
 
 % set rng before rendering.
 % comment to avoid seeting rng.
