@@ -15,5 +15,6 @@ movmf.mu3 = movmf.mu3(:,n);
 movmf.alpha = movmf.alpha(:,n);
 movmf.c = movmf.c(:,n);
 movmf.dim = size(movmf.alpha);
+movmf.dim(end+1:4) = 1;
 
 end

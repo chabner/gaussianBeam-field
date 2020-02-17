@@ -2,8 +2,8 @@ function [u_nf,us_nf] = farField_render(config,l_base,v_base)
 %% GB code
 % config = buildConfig(config);
 
-Nl = size(config.focalPointsL,2);
-Nv = numel(config.focalPointsV_base);
+Nl = size(config.focalPointsL.vector,2);
+Nv = numel(config.focalPointsV.base);
 
 u_nf = zeros(Nv,Nv,Nl);
 us_nf = zeros(Nv,Nv,Nl);
@@ -40,14 +40,14 @@ else
     af_ang_vl=evalampfunc_general(0,config.sct_type,config.ampfunc,config.dimNum);
 end
 
-focalPointsL = config.focalPointsL;
-focalPointsV = config.focalPointsV;
+focalPointsL = config.focalPointsL.vector;
+focalPointsV = config.focalPointsV.vector;
 
 kappaL = 1/config.mask_varL^2;
 kappaV = 1/config.mask_varV^2;
 
-focalDirectionL = config.focalDirectionsL;
-focalDirectionV = config.focalDirectionsV;
+focalDirectionL = config.focalDirectionsL.vector;
+focalDirectionV = config.focalDirectionsV.vector;
 
 for lightNum = 1:1:Nl
     
@@ -68,8 +68,8 @@ for lightNum = 1:1:Nl
     [u_ff,us_ff] = MCfieldOnWave( ...
         af_ang_vl, ...
         conj(w_l) , ...
-        config.focalDirectionsL(:,lightNum),    ... dirl
-        config.focalDirectionsV(:,lightNum),    ... dirv
+        config.focalDirectionsL.vector(:,lightNum),    ... dirl
+        config.focalDirectionsV.vector(:,lightNum),    ... dirv
         [1/config.scattgMFP,1/config.attMFP] ,  ... sigt
         1,                                      ... albedo
         config.box_min,                         ... box_min

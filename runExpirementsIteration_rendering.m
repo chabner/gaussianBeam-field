@@ -8,12 +8,12 @@ for iterNum = 1:1:1e3
         
         run([allExpirements(expirementFile).folder,filesep,allExpirements(expirementFile).name]);
 
-        config = preprocessConfig(config);
-        Nv = numel(config.focalPointsV_base);
-        Nl = numel(config.focalPointsL_base);
+        [config,gpuFunc] = preprocessConfig(config);
+        Nv = numel(config.focalPointsV.base);
+        Nl = numel(config.focalPointsL.base);
         
         tic
-        [u,us] = run_rendering(config);
+        [u,us] = run_rendering(config,gpuFunc);
         u = reshape(u,Nl,Nv,Nv);
         us = reshape(us,Nl,Nv,Nv);
         u = permute(u,[2,3,1]);

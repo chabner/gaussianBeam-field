@@ -22,25 +22,39 @@ config.scattgMFP = 100;
 config.attMFP = 100;
 config.boxDepth = 100;
 config.boxAxial = 1e4;
+config.boxShift = [1.2;0.1;2.3];
 
 %% Aperture
 
 % mask of the gaussian lens
-config.mask_var = 0.25;
-
-% -------------
-
-% depth of grid
-config.focalPoints_plain = -50:10:50;
+config.mask_varL = 0.25;
+config.mask_varV = 0.25;
 
 % -------------
 % focal illumination points
-config.focalPoints_base = -20:1:20;
+config.focalPointsL.base = -50:1:50;
+config.focalPointsL.xyGrid = true;
+config.focalPointsL.plain = -50:10:50;
+config.focalPointsL.dim = 2;
 
 % -------------
-% focal directions
-config.focalLDirections = deg2rad(-1:1:1);
-config.focalVDirections = deg2rad(-1:1:1);
+% focal view points
+config.focalPointsV.base = -50:1:50;
+config.focalPointsV.xyGrid = true;
+config.focalPointsV.plain = -50:10:50;
+config.focalPointsV.dim = 2;
+
+% -------------
+% focal illumination directions
+config.focalDirectionsL.base = deg2rad(-1:1:1);
+config.focalDirectionsL.xyGrid = true;
+config.focalDirectionsL.dim = 3;
+
+% -------------
+% focal view directions
+config.focalDirectionsV.base = deg2rad(-1:1:1);
+config.focalDirectionsV.xyGrid = true;
+config.focalDirectionsV.dim = 4;
 
 %% Scattering fnuction
 

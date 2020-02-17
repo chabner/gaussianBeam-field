@@ -22,17 +22,18 @@ alpha_1_2 = abs(movmf.alpha);
 
 alpha = alpha_1_2 .* exp(c_1_2 - log_C);
 
-movmf.alpha = alpha ./ sum(alpha,2);
+movmf.alpha = alpha ./ sum(alpha,1);
 movmf.c = log_C;
 
-n = randi(movmf.dim(2));
+n = randi(prod(movmf.dim(2:end)));
 
 % sample a direction
 smpNum = datasample(1:1:movmf.dim(1),1,'Weights',gather(movmf.alpha(:,n)));
 w0 = vsamp(gather([mu_r1(smpNum,n);mu_r2(smpNum,n);mu_r3(smpNum,n)]), gather(kappa(smpNum,n)), 1);
 
 % calculate probability
-w0p = sqrt(mean(movmfPdf(movmf,w0)));
+w0pdf = movmfPdf(movmf,w0);
+w0p = sqrt(mean(w0pdf(:)));
 
 w0 = w0(:);
 

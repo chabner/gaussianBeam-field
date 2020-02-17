@@ -1,4 +1,4 @@
-function [movmf] = movmfMultiple(movmf1,movmf2,conjMultiple)
+function [movmfMult] = movmfMultiple(movmf1,movmf2,conjMultiple)
 % multiple two movmf components
 %
 % INPUT
@@ -15,19 +15,20 @@ end
 
 
 if(conjMultiple)
-    movmf.alpha = movmf1.alpha .* conj(movmf2.alpha);
-    movmf.c     = movmf1.c      + conj(movmf2.c)    ;
-    movmf.mu1   = movmf1.mu1    + conj(movmf2.mu1)  ;
-    movmf.mu2   = movmf1.mu2    + conj(movmf2.mu2)  ;
-    movmf.mu3   = movmf1.mu3    + conj(movmf2.mu3)  ;
+    movmfMult.alpha = movmf1.alpha .* conj(movmf2.alpha);
+    movmfMult.c     = movmf1.c      + conj(movmf2.c)    ;
+    movmfMult.mu1   = movmf1.mu1    + conj(movmf2.mu1)  ;
+    movmfMult.mu2   = movmf1.mu2    + conj(movmf2.mu2)  ;
+    movmfMult.mu3   = movmf1.mu3    + conj(movmf2.mu3)  ;
 else
-    movmf.alpha = movmf1.alpha .* movmf2.alpha      ;
-    movmf.c     = movmf1.c      + movmf2.c          ;
-    movmf.mu1   = movmf1.mu1    + movmf2.mu1        ;
-    movmf.mu2   = movmf1.mu2    + movmf2.mu2        ;
-    movmf.mu3   = movmf1.mu3    + movmf2.mu3        ;
+    movmfMult.alpha = movmf1.alpha .* movmf2.alpha      ;
+    movmfMult.c     = movmf1.c      + movmf2.c          ;
+    movmfMult.mu1   = movmf1.mu1    + movmf2.mu1        ;
+    movmfMult.mu2   = movmf1.mu2    + movmf2.mu2        ;
+    movmfMult.mu3   = movmf1.mu3    + movmf2.mu3        ;
 end
 
-movmf.dim = size(movmf.alpha);
+movmfMult.dim = max(movmf1.dim,movmf2.dim);
+% movmfMult.dim = size(movmfMult.alpha);
 	
 end

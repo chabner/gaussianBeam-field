@@ -62,6 +62,7 @@ conv_vmf.alpha = repmat(scatteringMovmf.alpha,[1,apertureVmf.dim(2:end)]);
 conv_vmf.c = conv_c;
 
 conv_vmf.dim = size(conv_vmf.alpha);
+conv_vmf.dim(end+1:4) = 1;
 
 % normlize to ideal result
 % take absolute, maximal direction is mu_r

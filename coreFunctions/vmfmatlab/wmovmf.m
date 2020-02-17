@@ -188,11 +188,12 @@ meanVals = gather(meanVals);
 alpha = (hgMean/meanVals) * alpha;
 kappaMu = kappa .* mu.';
 
-movmf.mu1 = kappaMu(1,:).';
-movmf.mu2 = kappaMu(2,:).';
-movmf.mu3 = kappaMu(3,:).';
+movmf.mu1 = complex(kappaMu(1,:).');
+movmf.mu2 = complex(kappaMu(2,:).');
+movmf.mu3 = complex(kappaMu(3,:).');
 movmf.alpha = alpha(:);
-movmf.c = c(:);
+movmf.c = complex(c(:));
 movmf.dim = size(movmf.alpha);
+movmf.dim(end+1:4) = 1;
 
 end

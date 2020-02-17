@@ -8,15 +8,21 @@ for iterNum = 1:1:1e3
             clear config
             run([allExpirements(expirementFile).folder,filesep,allExpirements(expirementFile).name]);
 
-            config = preprocessConfig(config);
+            [config,gpuFunc] = preprocessConfig(config);
             
             C = 0;
             Cs = 0;
             xRep = 0;
             
+            Nl = numel(config.focalPointsL.base);
+            Nv = numel(config.focalPointsV.base);
+            
             tic
             for corrIter = 1:1:1e3
-                [u,us,current_xRep] = run_rendering(config);
+                [u,us,current_xRep] = run_rendering(config,gpuFunc);
+                u = reshape(u,[Nl,Nv,Nv]); u = permute(u,[2,3,1]);
+                us = reshape(us,[Nl,Nv,Nv]); us = permute(us,[2,3,1]);
+                
                 C = C + u(:,:,1) .* conj(u);
                 Cs = Cs + us(:,:,1) .* conj(us);
                 xRep = xRep + current_xRep;

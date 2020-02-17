@@ -30,23 +30,30 @@ config.mask_varL = 0.25;
 config.mask_varV = 0.25;
 
 % -------------
-
-% depth of lighting and viewa
-config.focalPointsL_plain = -config.boxDepth/2 - 0;
-config.focalPointsV_plain = -config.boxDepth/2 - 0;
-
-% -------------
 % focal illumination points
-config.focalPointsL_base = -100:10:100;
+config.focalPointsL.base = -100:10:100;
+config.focalPointsL.xyGrid = false;
+config.focalPointsL.plain = -config.boxDepth/2 - 0;
+config.focalPointsL.dim = 2;
 
 % -------------
 % focal view points
-config.focalPointsV_base = -6:0.125:6;
+config.focalPointsV.base = -6:0.125:6;
+config.focalPointsV.xyGrid = true;
+config.focalPointsV.plain = -config.boxDepth/2 - 0;
+config.focalPointsV.dim = 3;
 
 % -------------
-% focal directions
-config.focalLDirections = deg2rad(-1:0.1:1);
-config.focalVDirections = deg2rad(-1:0.1:1);
+% focal illumination directions
+config.focalDirectionsL.base = deg2rad(-1:0.1:1);
+config.focalDirectionsL.xyGrid = false;
+config.focalDirectionsL.dim = 2;
+
+% -------------
+% focal view directions
+config.focalDirectionsV.base = deg2rad(-1:0.1:1);
+config.focalDirectionsV.xyGrid = false;
+config.focalDirectionsV.dim = 2;
 
 %% Scattering fnuction
 

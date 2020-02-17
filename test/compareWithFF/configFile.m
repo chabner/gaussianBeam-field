@@ -7,7 +7,7 @@ config.iterationsRender = 1e3;
 
 % t/f if use gpu (for fitting algorithm)
 config.useGpu = true;
-config.mcGpuV = true;
+config.mcGpuV = false;
 config.mcGpuL = false;
 
 % set rng before rendering.
@@ -22,6 +22,7 @@ config.scattgMFP = 10;
 config.attMFP = 10;
 config.boxDepth = 20;
 config.boxAxial = 20;
+config.boxShift = [1.2;0.1;2.3];
 
 %% Aperture
 
@@ -30,23 +31,30 @@ config.mask_varL = 0.25;
 config.mask_varV = 0.25;
 
 % -------------
-
-% depth of lighting and viewa
-config.focalPointsL_plain = -config.boxDepth/2 - 0;
-config.focalPointsV_plain = -config.boxDepth/2 - 0;
-
-% -------------
 % focal illumination points
-config.focalPointsL_base = -5:1:5;
+config.focalPointsL.base = -5:1:5;
+config.focalPointsL.xyGrid = false;
+config.focalPointsL.plain = -config.boxDepth/2 - 0;
+config.focalPointsL.dim = 2;
 
 % -------------
 % focal view points
-config.focalPointsV_base = -6:0.125:6;
+config.focalPointsV.base = -6:0.125:6;
+config.focalPointsV.xyGrid = true;
+config.focalPointsV.plain = -config.boxDepth/2 - 0;
+config.focalPointsV.dim = 3;
 
 % -------------
-% focal directions
-config.focalLDirections = 1 * deg2rad(-5:1:5);
-config.focalVDirections = 1 * deg2rad(5:-1:-5);
+% focal illumination directions
+config.focalDirectionsL.base = 5 * deg2rad(-5:1:5);
+config.focalDirectionsL.xyGrid = false;
+config.focalDirectionsL.dim = 2;
+
+% -------------
+% focal view directions
+config.focalDirectionsV.base = 5 * deg2rad(5:-1:-5);
+config.focalDirectionsV.xyGrid = false;
+config.focalDirectionsV.dim = 2;
 
 %% Scattering fnuction
 

@@ -1,4 +1,4 @@
-function [u,us,um,u_nomean,xRep,wRep]=MCfieldGaussianBeam(sigt,albedo,box_min,box_max,apertureVmf_l,apertureVmf_v,signl,signv,varl,varv,dirl,dirv,maxItr,lambda,smpFlg,smpFunc,movmf,sct_type,ampfunc,ampfunc0)
+function [u,us,um,u_nomean,xRep,wRep]=MCfieldGaussianBeam(sigt,albedo,box_min,box_max,apertureVmf_l,apertureVmf_v,signl,signv,varl,varv,dirl,dirv,maxItr,lambda,smpFlg,smpFunc,movmf,sct_type,ampfunc,gpuFunc)
 %xl: a 3xNl or 2xNl vector of positions of where beam is focused (do not have to be
 %on a gread)
 %xv: 3xNv or 2xNv, center of viewing beam
@@ -26,9 +26,11 @@ unmeanl = [0;0;1];
 % Initiate output parameters
 % u = zeros(Nv,Nl,class(xv));
 % us =zeros(Nv,Nl,class(xv));
+u_size = max(apertureVmf_l.dim,apertureVmf_v.dim);
+u_size = u_size(2:end);
 
-u = 0;
-us = 0;
+u = complex(zeros(u_size,class(apertureVmf_v.mu1)));
+us = u;
 
 
 % Box size
@@ -98,14 +100,19 @@ for itr=1:maxItr
 
     dz = cubeDist(x,box_min,box_max,dirv);
     throughputVmf_v = movmfThroughput(apertureVmf_v,x,signv,sigt(2),dz);
-    movmf_mult = movmfMultiple(conv_vmf_l0,throughputVmf_v,false);
-    integrateMult = movmfIntegrate(movmf_mult);
-    us = us + integrateMult * randPhase / sqrt(px);
+    
+    if(gpuFunc.active)
+        us = integrateMultGPU(gpuFunc,us,conv_vmf_l0,throughputVmf_v,randPhase / sqrt(px));
+    else
+        movmf_mult = movmfMultiple(conv_vmf_l0,throughputVmf_v,false);
+        [integrateMult] = movmfIntegrate(movmf_mult);
+        us = us + squeeze(integrateMult * randPhase / sqrt(px));
+    end
     
     rotatedMovmf_l = movmf;
-    rotatedMovmf_l.mu1 = sign(rotatedMovmf_l.mu3) .* w(1);
-    rotatedMovmf_l.mu2 = sign(rotatedMovmf_l.mu3) .* w(2);
-    rotatedMovmf_l.mu3 = sign(rotatedMovmf_l.mu3) .* w(3);
+    rotatedMovmf_l.mu1 = rotatedMovmf_l.mu3 .* w(1);
+    rotatedMovmf_l.mu2 = rotatedMovmf_l.mu3 .* w(2);
+    rotatedMovmf_l.mu3 = rotatedMovmf_l.mu3 .* w(3);
     
     throughputVmf_l_times_movmf = movmfMultiple(throughputVmf_l,rotatedMovmf_l,true);
     el = movmfIntegrate(throughputVmf_l_times_movmf) / w0p;
@@ -129,15 +136,23 @@ for itr=1:maxItr
 
             % rotate the scattering function on direction of ow
             rotatedMovmf_v = movmf;
-            rotatedMovmf_v.mu1 = sign(rotatedMovmf_v.mu3) .* ow(1);
-            rotatedMovmf_v.mu2 = sign(rotatedMovmf_v.mu3) .* ow(2);
-            rotatedMovmf_v.mu3 = sign(rotatedMovmf_v.mu3) .* ow(3);
+            rotatedMovmf_v.mu1 = rotatedMovmf_v.mu3 .* ow(1);
+            rotatedMovmf_v.mu2 = rotatedMovmf_v.mu3 .* ow(2);
+            rotatedMovmf_v.mu3 = rotatedMovmf_v.mu3 .* ow(3);
             
             dz = cubeDist(x,box_min,box_max,dirv);
             throughputVmf_v = movmfThroughput(apertureVmf_v,x,signv,sigt(2),dz);
-            throughputVmf_v_times_movmf = movmfMultiple(throughputVmf_v,rotatedMovmf_v,true);
-            ev = movmfIntegrate(throughputVmf_v_times_movmf);
-            u = u + ev .* el / sqrt(px) * randPhase;
+            
+            
+%             if(gpuFunc.active)
+            if(false)
+                u = MSintegrateMultGPU(gpuFunc,u,throughputVmf_v,rotatedMovmf_v,el,gpuArray(randPhase / sqrt(px)));
+            else
+                throughputVmf_v_times_movmf = movmfMultiple(throughputVmf_v,rotatedMovmf_v,true);
+                ev = movmfIntegrate(throughputVmf_v_times_movmf);
+                u = u + squeeze(ev .* el / sqrt(px) * randPhase);
+            end
+            
         end
 
        
