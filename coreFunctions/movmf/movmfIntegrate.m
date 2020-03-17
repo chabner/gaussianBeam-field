@@ -9,6 +9,7 @@ function [I] = movmfIntegrate(movmf)
 
 % calculate the real and complex parts
 
+
 sqrt_mu = sqrt(movmf.mu1.^2 + movmf.mu2.^2 + movmf.mu3.^2);
 
 I_k = 2 * pi * exp(movmf.c + sqrt_mu) ./ (sqrt_mu);

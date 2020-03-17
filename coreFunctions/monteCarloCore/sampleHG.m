@@ -3,9 +3,9 @@ function costheta=sampleHG(ampfunc, dim)
     g = ampfunc.g;
     forwardWeight = ampfunc.forwardWeight;
     
-    if(rand > forwardWeight)
-        g = -g;
-    end
+%     if(rand > forwardWeight)
+%         g = -g;
+%     end
     
     if(abs(g) < 0.001)
          costheta = 2*rand-1;

@@ -4,7 +4,7 @@ if(isfield(config,'rng'))
 	rng(config.rng);
 end
 
-[u,us,~,~,xRep] = MCfieldGaussianBeam( ...
+[u,us,~,~,xRep] = MCfieldMOvMF( ...
   [1/config.scattgMFP,1/config.attMFP] , ... sigt
   1,                                     ... albedo
   config.box_min,                        ... box_min
@@ -13,8 +13,6 @@ end
   config.apertureVmf_v,                  ... apertureVmf_v
   1,                                     ... signl
   1,                                     ... signv
-  config.mask_varL,                      ... varl
-  config.mask_varV,                      ... varv
   config.focalDirectionsL.vector,        ... dirl
   config.focalDirectionsV.vector,        ... dirv
   config.iterationsRender,               ... maxItr
@@ -27,9 +25,8 @@ end
   gpuFunc                                ... gpuFunc
 );
 
-if(config.mcGpuV || config.mcGpuL)
-    u = gather(u);
-    us = gather(us);
-end
-
+% if(config.mcGpuV || config.mcGpuL)
+%     u = gather(u);
+%     us = gather(us);
+% end
 end

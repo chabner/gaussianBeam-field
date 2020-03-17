@@ -1,2 +1,8 @@
 
-*.mat
+test/anisotropic/res_gaussian/*.mat
+test/anisotropic/res_vmf/*.mat
+test/anisotropic/res_ff/*.mat
+test/importanceSampling/res/*.mat
+test/ME/res_gaussian/*.mat
+test/ME/res_vmf/*.mat
+test/ME/res_ff/*.mat

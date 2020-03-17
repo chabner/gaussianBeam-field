@@ -1,4 +1,4 @@
-function [u,us,um,u_nomean,xRep,wRep]=MCfieldGaussianBeam(sigt,albedo,box_min,box_max,apertureVmf_l,apertureVmf_v,signl,signv,varl,varv,dirl,dirv,maxItr,lambda,smpFlg,smpFunc,movmf,sct_type,ampfunc,gpuFunc)
+function [u,us,um,u_nomean,xRep,wRep]=MCfieldGaussianBeam(sigt,albedo,box_min,box_max,apertureVmf_l,apertureVmf_v,signl,signv,dirl,dirv,maxItr,lambda,smpFlg,smpFunc,movmf,sct_type,ampfunc,gpuFunc)
 %xl: a 3xNl or 2xNl vector of positions of where beam is focused (do not have to be
 %on a gread)
 %xv: 3xNv or 2xNv, center of viewing beam
@@ -59,7 +59,7 @@ for itr=1:maxItr
             px=1;
         case 2
             % exponential distribution
-            [x,px]=expSmpX(box_min,box_max,unmeanl,sigt(2));
+            [x,px] = expSmpX(box_min,box_max,[0;0;1],sigt(2));
         case 3
             [x,px,xMissIter] = smpVmfBeam(apertureVmf_l,smpFunc,box_min,box_max);
             px = px * V; % The reson I multiple with V - same prob as uniform
@@ -74,7 +74,11 @@ for itr=1:maxItr
     
     dz = cubeDist(x,box_min,box_max,-dirl);
     throughputVmf_l = movmfThroughput(apertureVmf_l,x,-signl,sigt(2),dz);
+    throughputMog_l = movmfToMog(throughputVmf_l);
+    mog = movmfToMog(movmf);
+    
     conv_vmf_l0 = movmfConv(throughputVmf_l,movmf);
+    conv_mog_l0 = mogConv(throughputMog_l,mog);
     
     % First scattering direction
     %implement an option to sample w isotropically (add apropriate input flag).
@@ -95,27 +99,21 @@ for itr=1:maxItr
     
     % for each lighting direction, the viewing direction gets different
     % direction
-    
     randPhase = exp(2*pi*1i*rand);
 
     dz = cubeDist(x,box_min,box_max,dirv);
     throughputVmf_v = movmfThroughput(apertureVmf_v,x,signv,sigt(2),dz);
+    throughputMog_v = movmfToMog(throughputVmf_v);
     
-    if(gpuFunc.active)
-        us = integrateMultGPU(gpuFunc,us,conv_vmf_l0,throughputVmf_v,randPhase / sqrt(px));
-    else
-        movmf_mult = movmfMultiple(conv_vmf_l0,throughputVmf_v,false);
-        [integrateMult] = movmfIntegrate(movmf_mult);
-        us = us + squeeze(integrateMult * randPhase / sqrt(px));
-    end
+    mog_mult = mogMultiple(conv_mog_l0,throughputMog_v,false);
+    [integrateMult] = mogIntegrate(mog_mult);
+    us = us + squeeze(integrateMult * randPhase / sqrt(px));
     
-    rotatedMovmf_l = movmf;
-    rotatedMovmf_l.mu1 = rotatedMovmf_l.mu3 .* w(1);
-    rotatedMovmf_l.mu2 = rotatedMovmf_l.mu3 .* w(2);
-    rotatedMovmf_l.mu3 = rotatedMovmf_l.mu3 .* w(3);
+    rotatedMog_l = mogRotate(mog,w);
     
-    throughputVmf_l_times_movmf = movmfMultiple(throughputVmf_l,rotatedMovmf_l,true);
-    el = movmfIntegrate(throughputVmf_l_times_movmf) / w0p;
+    throughputMog_l_times_mog = mogMultiple(throughputMog_l,rotatedMog_l,true);
+    throughputMog_l_times_mog.c = throughputMog_l_times_mog.c - log(w0p);
+    el = mogIntegrate(throughputMog_l_times_mog);
 
     % number of scattering events
     pL=0;
@@ -135,21 +133,15 @@ for itr=1:maxItr
             randPhase = exp(2*pi*1i*rand);
 
             % rotate the scattering function on direction of ow
-            rotatedMovmf_v = movmf;
-            rotatedMovmf_v.mu1 = rotatedMovmf_v.mu3 .* ow(1);
-            rotatedMovmf_v.mu2 = rotatedMovmf_v.mu3 .* ow(2);
-            rotatedMovmf_v.mu3 = rotatedMovmf_v.mu3 .* ow(3);
+            rotatedMog_v = mogRotate(mog,ow);
             
             dz = cubeDist(x,box_min,box_max,dirv);
             throughputVmf_v = movmfThroughput(apertureVmf_v,x,signv,sigt(2),dz);
+            throughputMog_v = movmfToMog(throughputVmf_v);
             
-            
-%             if(gpuFunc.active)
-            if(false)
-                u = MSintegrateMultGPU(gpuFunc,u,throughputVmf_v,rotatedMovmf_v,el,gpuArray(randPhase / sqrt(px)));
-            else
-                throughputVmf_v_times_movmf = movmfMultiple(throughputVmf_v,rotatedMovmf_v,true);
-                ev = movmfIntegrate(throughputVmf_v_times_movmf);
+            throughputMog_v_times_mog = mogMultiple(throughputMog_v,rotatedMog_v,true);
+            ev = mogIntegrate(throughputMog_v_times_mog);
+            if(ow(end) > 0.8)
                 u = u + squeeze(ev .* el / sqrt(px) * randPhase);
             end
             

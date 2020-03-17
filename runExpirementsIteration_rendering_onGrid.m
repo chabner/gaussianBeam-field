@@ -18,7 +18,7 @@ for iterNum = 1:1:1e3
             numel(config.focalDirectionsV.base)
             ];
         tic
-        [u,us] = run_rendering(config,gpuFunc);
+        [u,us] = run_rendering_mog(config,gpuFunc);
         u = reshape(u,dimVec);
         us = reshape(us,dimVec);
         t = toc

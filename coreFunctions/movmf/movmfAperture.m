@@ -1,4 +1,4 @@
-function [apertureVmf] = movmfAperture(aperuteStd,focalPoints,focalPointsSign,direction,focalPointDim,directionDim)
+function [apertureVmf] = movmfAperture(aperuteStd,focalPoints,focalPointsSign,direction,focalPointDim,directionDim,shiftVec,shiftDim)
 % Build vmf aperture
 %
 % INPUT:
@@ -18,9 +18,19 @@ focalPoint_1 = focalPoints(1,:); focalPoint_1 = focalPoint_1(:); focalPoint_1 = 
 focalPoint_2 = focalPoints(2,:); focalPoint_2 = focalPoint_2(:); focalPoint_2 = shiftdim(focalPoint_2,-focalPointDim+1);
 focalPoint_3 = focalPoints(3,:); focalPoint_3 = focalPoint_3(:); focalPoint_3 = shiftdim(focalPoint_3,-focalPointDim+1);
 
-apertureVmf.mu1 = complex(1/(aperuteStd^2) * direction_1 + focalPointsSign * 2 * pi * 1i * focalPoint_1);
-apertureVmf.mu2 = complex(1/(aperuteStd^2) * direction_2 + focalPointsSign * 2 * pi * 1i * focalPoint_2);
-apertureVmf.mu3 = complex(1/(aperuteStd^2) * direction_3 + focalPointsSign * 2 * pi * 1i * focalPoint_3);
+if(nargin > 6)
+    shiftPoint_1 = shiftVec(1,:); shiftPoint_1 = shiftPoint_1(:); shiftPoint_1 = shiftdim(shiftPoint_1,-shiftDim+1);
+    shiftPoint_2 = shiftVec(2,:); shiftPoint_2 = shiftPoint_2(:); shiftPoint_2 = shiftdim(shiftPoint_2,-shiftDim+1);
+    shiftPoint_3 = shiftVec(3,:); shiftPoint_3 = shiftPoint_3(:); shiftPoint_3 = shiftdim(shiftPoint_3,-shiftDim+1);
+
+    apertureVmf.mu1 = complex(1/(aperuteStd^2) * direction_1 + focalPointsSign * 2 * pi * 1i * (focalPoint_1 + shiftPoint_1));
+    apertureVmf.mu2 = complex(1/(aperuteStd^2) * direction_2 + focalPointsSign * 2 * pi * 1i * (focalPoint_2 + shiftPoint_2));
+    apertureVmf.mu3 = complex(1/(aperuteStd^2) * direction_3 + focalPointsSign * 2 * pi * 1i * (focalPoint_3 + shiftPoint_3));
+else
+    apertureVmf.mu1 = complex(1/(aperuteStd^2) * direction_1 + focalPointsSign * 2 * pi * 1i * focalPoint_1);
+    apertureVmf.mu2 = complex(1/(aperuteStd^2) * direction_2 + focalPointsSign * 2 * pi * 1i * focalPoint_2);
+    apertureVmf.mu3 = complex(1/(aperuteStd^2) * direction_3 + focalPointsSign * 2 * pi * 1i * focalPoint_3);
+end
 
 kappa_r = sqrt(real(apertureVmf.mu1).^2 + real(apertureVmf.mu2).^2 + real(apertureVmf.mu3).^2);
 

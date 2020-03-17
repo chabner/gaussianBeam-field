@@ -55,6 +55,7 @@ dimsVec(end) = 2;
 
 mu_r = permute(mu_r,dimsVec);
 dz = cubeDist(Pz,config.box_min,config.box_max,-1 * mu_r);
+dz(dz < 0) = 0;
 
 sampleZfunction = exp(-sigt * dz) .* (sigma_gal./sigma_hat).^2 .* ...
         exp(((kappa_g^2)/(4*pi^2) + ((sampleGridZ - P0_z)./mu_r3).^2) .* (1 - mu_r3.^2) ./ sigma_gal.^2);

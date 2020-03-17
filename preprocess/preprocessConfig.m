@@ -41,6 +41,16 @@ end
     config.focalPointsV.plain);
 config.focalPointsV.vector = [focalPointsV_X(:).'; focalPointsV_Y(:).'; focalPointsV_Z(:).'];
 
+% V shift
+if(isfield(config,'focalPointsVshift') && isfield(config.focalPointsVshift,'vShift'))
+    [vShift_X,vShift_Y,vShift_Z] = ndgrid( ...
+        config.focalPointsVshift.vShift, ...
+        0, ...
+        0);
+    
+    config.focalPointsVshift.vShiftVector = [vShift_X(:).'; vShift_Y(:).'; vShift_Z(:).'];
+end
+
 % Focal directions - L
 if(config.focalDirectionsL.xyGrid)
     ldiryVec = sin(config.focalDirectionsL.base);
@@ -93,19 +103,37 @@ config.apertureVmf_l = movmfAperture( ...
     config.focalPointsL.dim , ...
     config.focalDirectionsL.dim);
 
-config.apertureVmf_v = movmfAperture( ...
-    config.mask_varV , ...
-    config.focalPointsV.vector , ...
-    1 , ...
-    config.focalDirectionsV.vector , ...
-    config.focalPointsV.dim , ...
-    config.focalDirectionsV.dim);
-
+if(isfield(config,'focalPointsVshift') && isfield(config.focalPointsVshift,'vShift'))
+    config.apertureVmf_v = movmfAperture( ...
+        config.mask_varV , ...
+        config.focalPointsV.vector , ...
+        1 , ...
+        config.focalDirectionsV.vector , ...
+        config.focalPointsV.dim , ...
+        config.focalDirectionsV.dim, ...
+        config.focalPointsVshift.vShiftVector, ...
+        config.focalPointsVshift.dim);
+else
+    config.apertureVmf_v = movmfAperture( ...
+        config.mask_varV , ...
+        config.focalPointsV.vector , ...
+        1 , ...
+        config.focalDirectionsV.vector , ...
+        config.focalPointsV.dim , ...
+        config.focalDirectionsV.dim);
+end
 %% Scattering function
 if(config.sctType == 3)
     config.sct_type = 3;
     config.ampfunc.g = config.g;
     config.ampfunc.forwardWeight = config.forwardWeight;
+end
+
+if(isfield(config,'g0'))
+    config.sct_type = 3;
+    config.ampfunc0.g = config.g0;
+    config.ampfunc0.forwardWeight = config.forwardWeight;
+else
     config.ampfunc0 = inf;
 end
 
@@ -184,7 +212,7 @@ for iterNum = 1:1:pxItersNum
         px(iterNum) = 1;
     case 2
         % exponential distribution
-        [~,px(iterNum)]=expSmpX(config.box_min,config.box_max,[0;0;1],config.attMFP);
+        [~,px(iterNum)]=expSmpX(config.box_min,config.box_max,[0;0;1],1/config.attMFP);
     case 3
         % gaussian sampling
         apertureVmf_l = movmfAperture(config.mask_varL,config.focalPointsL{lightNum},-1,config.focalDirectionsL{lightNum});
@@ -205,20 +233,28 @@ if(config.mcGpuL || config.mcGpuV)
     u_size = max(config.apertureVmf_l.dim,config.apertureVmf_v.dim);
     u_size = u_size(2:end);
     
+    lDim = config.apertureVmf_l.dim;
+    lDim(1) = config.movmf.dim(1);
+    
     gpuFunc.integrateMult = parallel.gpu.CUDAKernel('integrateMult.ptx','integrateMult.cu');
     gpuFunc.integrateMult.GridSize = [ceil(prod(u_size)/gpuFunc.integrateMult.MaxThreadsPerBlock) 1 1];
     gpuFunc.integrateMult.ThreadBlockSize = [gpuFunc.integrateMult.MaxThreadsPerBlock 1 1];
-    setConstantMemory(gpuFunc.integrateMult,'uDimProd',int32(cumprod(u_size)));
     
-    lDim = config.apertureVmf_l.dim;
-    lDim(1) = config.movmf.dim(1);
+    setConstantMemory(gpuFunc.integrateMult,'uDimProd',int32(cumprod(u_size)));
     setConstantMemory(gpuFunc.integrateMult,'lDim',int32(lDim));
     setConstantMemory(gpuFunc.integrateMult,'vDim',int32(config.apertureVmf_v.dim));
     setConstantMemory(gpuFunc.integrateMult,'lMixtureAlpha',config.movmf.alpha);
     
+    
     gpuFunc.MSintegrateMult = parallel.gpu.CUDAKernel('MSintegrateMult.ptx','MSintegrateMult.cu');
     gpuFunc.MSintegrateMult.GridSize = [ceil(prod(u_size)/gpuFunc.MSintegrateMult.MaxThreadsPerBlock) 1 1];
     gpuFunc.MSintegrateMult.ThreadBlockSize = [gpuFunc.MSintegrateMult.MaxThreadsPerBlock 1 1];
+    
+    setConstantMemory(gpuFunc.MSintegrateMult,'uDimProd',int32(cumprod(u_size)));
+    setConstantMemory(gpuFunc.MSintegrateMult,'lDim',int32(config.apertureVmf_l.dim));
+    setConstantMemory(gpuFunc.MSintegrateMult,'vDim',int32(config.apertureVmf_v.dim));
+    setConstantMemory(gpuFunc.MSintegrateMult,'lMixtureAlpha',config.movmf.alpha);
+    setConstantMemory(gpuFunc.MSintegrateMult,'mixturesNum',int32(config.movmf.dim(1)));
 else
     gpuFunc.active = false;
 end

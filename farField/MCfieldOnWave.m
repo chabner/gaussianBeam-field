@@ -1,4 +1,4 @@
-function [u,us,um]=MCfieldOnWave(af_ang_vl,Wl,dirl,dirv,sigt,albedo,box_min,box_max,l,v,is_ff_l,is_ff_v,maxItr,lambda,doCBS,smpFlg,sct_type,ampfunc,ampfunc0,lmean0)
+function [u,us]=MCfieldOnWave(gpuFunc,af_ang_vl,Wl,dirl,dirv,sigt,albedo,box_min,box_max,l,v,maxItr,lambda,smpFlg,sct_type,ampfunc,ampfunc0,lmean0)
 %MCFIELD MC rendering field algorithm
 %
 % render a speckle field for Nv viewings and Nl lights
@@ -48,36 +48,19 @@ end
 
 dim = size(box_min,1);
 
-% get number of sources
-if(size(l,1) ~= dim)
-    if(dim == 2 && size(l,1) == 1)
-        l = [sin(l); cos(l)];
-    else
-        error('Invalid light source input');
-    end
-end
-
-if(size(v,1) ~= dim)
-    if(dim == 2 && size(v,1) == 1)
-        v = [sin(v); cos(v)];
-    else
-        error('Invalid view source input');
-    end
-end
-
-Nl = size(l,2);
-Nv = size(v,2);
-
 %% Prepare for algorithm
 
 % Initiate output parameters
-% u = zeros(Nv,size(Wl,1));
-u = 0;
-us = 0;
+u = complex(zeros(size(v,2),size(Wl,1)));
+if(gpuFunc.active)
+    u = gpuArray(u); 
+end
+
+us = u;
 
 % first scattering event direction
 if ~exist('lmean0','var')
-    unmeanl = mean(l,2);
+    unmeanl = [0;0;1];
 else
     unmeanl = lmean0;
 end
@@ -101,15 +84,7 @@ box_w = box_max-box_min;
 % end
 
 % in far field, the entrance direction to the box is fixed
-if is_ff_v
-    rv=v;
-end
-
-if is_ff_l
-    rl=l;
-end
-
-ff_sign=-2*(is_ff_v)+1;
+ff_sign=-1;
 
 % apertureVmf_l = movmfAperture(varl,xl,-1);
 
@@ -130,72 +105,48 @@ for itr=1:maxItr
             x=rand(dim,1).*(box_w)+box_min; px=1;
         case 2
             % exponential distribution
-            [x,px]=expSmpX(box_min,box_max,unmeanl,sigt(2));
+            [x,px] = expSmpX(box_min,box_max,[0;0;1],sigt(2));
         case 3
-            % uniform distribution
             error('bad!!')
-            [x,px] = smpVmfBeam(apertureVmf_l,sigt(2),box_min,box_max);
-            px = px * V; % The reson I multiple with V - same prob as uniform
     end
-    %x=[0;30;0.0000001];
+%     x=[0;0;0];
     %x=[-30;0;50];
 %     x
-    % entrance directions for near-field sources
-    if ~is_ff_v
-        rv=v-repmat(x,1,Nv);
-        rv=rv./repmat(sum(rv.^2,1).^0.5,dim,1);
-    end
-    if ~is_ff_l
-        rl=repmat(x,1,Nl)-l;
-        rl=rl./repmat(sum(rl.^2,1).^0.5,dim,1);
-    end
-    
-    % single scattering rotation amplitude
-    if ~(is_ff_v && is_ff_l)
-        if sct_type>1
-        for j=1:Nl
-            af_ang_vl(:,j)=evalampfunc_general(rl(:,j)'*rv,sct_type,ampfunc,dim);
-        end
-        else
-            af_ang_vl=evalampfunc_general(0,sct_type,ampfunc,dim);
-        end
-    end
     
     % First scattering direction
     % w - sampled direction.
     % w0p - probability of the sampled direction, needed to compute inportance sampling integral correctly. 
-    if ~exist('ampfunc0','var')
-        w=randn(dim,1); w=w/norm(w);
-        w0p=1/sqrt(2^(dim-1)*pi);
-    else
-        w=smpampfunc_general(meanl, sct_type,ampfunc0);     
-        w0p=(evalampfunc_general(meanl'*w,sct_type,ampfunc0,dim));
+    switch floor(smpFlg/10)
+        case 1
+            % uniform distribution
+            w=randn(dim,1); w=w/norm(w);
+            w0p=1/sqrt(2^(dim-1)*pi);
+        case 2
+            % g0
+            w=smpampfunc_general(meanl, sct_type,ampfunc0);     
+            w0p=(evalampfunc_general(meanl'*w,sct_type,ampfunc0,dim));
+        case 3
+            % multimode
+            [w,w0p] = smpampfunc_multimode(l,sct_type,ampfunc0);
     end
 
     % rotation due to first scattering in multiple scattering case (s
     % function in article).
-    af_l=evalampfunc_general((w'*rl),sct_type,ampfunc,dim)./w0p;
+    af_l=evalampfunc_general((w'*l),sct_type,ampfunc,dim)./w0p;
     
     % complex transmission (xi function in article) and attenuation term 
     % in multiple scattering (tau function in article) between first scattering
     % particle and the light source 
-    e_l0=evalphaseatt(x,l,is_ff_l,sigt(2),lambda,box_min,box_max,1,dirl);
+    e_l0=evalphaseatt(x,l,sigt(2),lambda,box_min,box_max,1,dirl);
     
     % complex volumetric throughput (ni function in article) of first
     % scattering event to be used with paths of length >1 (the multiple scattering
     % case)
-    e_l0_ms = sum(e_l0.*af_l.*Wl,2);
+    e_l0_ms = (sum(e_l0.*af_l.*Wl,2)).';
     
-    % complex volumetric throughput connecting first scattering particle
-    % and the sensors
-    e_v0=evalphaseatt(x,ff_sign*v,is_ff_v,sigt(2),lambda,box_min,box_max,-1,dirv);
-    
-    % in case of coherent backscattering, calculate also the complex
-    % volumetric throughput where the path begins from the view to the
-    % first scatter
-    if doCBS
-         af_v=evalampfunc_general((-w'*rv),sct_type,ampfunc,dim)./w0p;
-         e_v0_ms=e_v0.*af_v;
+    if(gpuFunc.active)
+        e_l0 = gpuArray(complex(e_l0));
+        e_l0_ms = gpuArray(complex(e_l0_ms));
     end
       
     % number of scattering events
@@ -212,43 +163,57 @@ for itr=1:maxItr
         % calculate the complex volumetric throughput for the last
         % scattering event in case of multiple scattering
         if (pL>1)
-            e_v=evalphaseatt(x,ff_sign*v,is_ff_v,sigt(2),lambda,box_min,box_max,-1,dirv);
-            af_v=evalampfunc_general((ow'*rv),sct_type,ampfunc,dim);
-            e_v_ms=e_v.*af_v;
-            if doCBS
-                e_l=evalphaseatt(x,l,is_ff_l,sigt(2),lambda,box_min,box_max);
-                af_l=evalampfunc_general((-ow'*rl),sct_type,ampfunc,dim);
-                %e_l_ms=e_l.*af_l;
-                e_l_ms=sum(e_l.*af_l.*Wl);
-    
+            if(~gpuFunc.active)
+                e_v=evalphaseatt(x,ff_sign*v,sigt(2),lambda,box_min,box_max,-1,dirv);
+                af_v=evalampfunc_general((ow'*v),sct_type,ampfunc,dim);
+                e_v_ms=(e_v.*af_v).';
+                
+                tpath = e_v_ms*e_l0_ms;
+                
+                % weight path
+                tpath = sqrt(weight./px)*tpath;
+                % sample random phase for path
+                randNum = exp(2*pi*1i*rand);
+                tpath = tpath*randNum;
+                
+                u = u + tpath;
+            else
+                u = ff_ms(gpuFunc,u,e_l0_ms,x,ow, ...
+                    sqrt(weight./px)*exp(2*pi*1i*rand) );
             end
         end
 
         % Update field with next-event estimation
         if (pL==1)
-            %tpath=sum(af_ang_vl.*(e_v0(:)*(e_l0(:).*Wl(:)).'),2);
-            tpath = e_v0(1,:).'.*sum(af_ang_vl*(e_l0.'.*Wl(:)),2);
-        else
-            tpath = (e_v_ms(1,:)*conj(e_l0_ms(:))');
-            if doCBS
-                tpath=1/sqrt(2)*(tpath+(e_v0_ms(:)*conj(e_l_ms(:))'));
+            
+            if(~gpuFunc.active)
+                % complex volumetric throughput connecting first scattering particle
+                % and the sensors
+                e_v0=evalphaseatt(x,ff_sign*v,sigt(2),lambda,box_min,box_max,-1,dirv);
+                e_v0 = e_v0.';
+                
+                tpath = sum(permute(Wl,[3,1,2]) .* ...
+                    permute(gather(af_ang_vl .* e_v0 .* e_l0),[1,3,2]) , 3);
+                % weight path
+                tpath = sqrt(weight./px)*tpath;
+                % sample random phase for path
+                randNum = exp(2*pi*1i*rand);
+                tpath = tpath*randNum;
+
+                if(gpuFunc.active)
+                    tpath = gpuArray(tpath);
+                end
+
+                %add path to field
+                u = u + tpath;
+                us = us + tpath;
+            else
+                [us,u] = ff_single(gpuFunc,us,u,Wl,e_l0,af_ang_vl,x, ...
+                    sqrt(weight./px) * exp(2*pi*1i*rand));
             end
         end
 
-        % weight path
-        tpath = sqrt(weight./px)*tpath;
-        % sample random phase for path
-        randNum = exp(2*pi*1i*rand);
-        tpath = tpath*randNum;
-        %add path to field
-        u = u + tpath(:);
-        
-        if (pL==1)
-            us = us + tpath(:);
-        end
-
         % advance to the next scattering event
-%         x
         d=-log(-rand+1)/(sigt(1));
         x=x+d*w;
 
@@ -277,9 +242,7 @@ for itr=1:maxItr
 end
 
 %% Normalization
-um = u - us;
 
 u=u*sqrt(1/maxItr*V*sigt(2));
 us=us*sqrt(1/maxItr*V*sigt(2));
-um=um*sqrt(1/maxItr*V*sigt(2));
 

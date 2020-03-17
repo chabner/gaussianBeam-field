@@ -55,6 +55,11 @@ config.focalDirectionsV.base = 5 * deg2rad(0:1:4);
 config.focalDirectionsV.xyGrid = false;
 config.focalDirectionsV.dim = 2;
 
+% -------------
+% shift v
+config.focalPointsVshift.vShift = config.focalPointsL.base;
+config.focalPointsVshift.dim = 2;
+
 %% Scattering fnuction
 
 % scattering type (only hg is implemented right now)
@@ -72,7 +77,30 @@ config.vmf_iterations = 1e5;
 config.vmf_samples = 1e6;
 
 %% importance sampling
+%% importance sampling
 % the tens digit is for direction, and the first digit is for position
+% nf code, position:
+% 1: random
+% 2: exponent
+% 3: gaussian multiple (not activated)
+% 4: gaussian sum
+%
+% nf code, direction:
+% 1: random
+% 2: not activated
+% 3: gaussian multiple (not activated)
+% 4: gaussian sum
+% 5: gaussian sum, same beam (only 54 is possible)
+
+% ff code, position:
+% 1: random
+% 2: exponent
+
+% ff code, direction:
+% 1: random
+% 2: sample from g0 (need to be provided)
+% 3: sample from g0 - multimode
+
 % choose 1 for random, and 3 for gaussian
 config.sampleFlag = 54;
 
