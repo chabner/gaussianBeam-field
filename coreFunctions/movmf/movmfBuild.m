@@ -51,33 +51,64 @@ if(nargin < 7)
 end
 
 if(sctType == 4)
-    movmfRes = inf;
+    movmfRes.mu1 = 0;
+    movmfRes.mu2 = 0;
+    movmfRes.mu3 = ampfunc.vmfKappaG;
+    movmfRes.alpha = 1;
+    movmfRes.c = log(ampfunc.vmfKappaG) - log(2*pi) - ampfunc.vmfKappaG;
+    movmfRes.dim = [1,1,1,1,1];
+    
     return;
-end
-
-if(sctType == 2)
-    error('Not implemented yet :\')
 end
 
 if(sctType == 1)
     sctType = 3;
-    g = 0;
+    ampfunc.g = 0;
+    ampfunc.forwardWeight = 1;
+end
+
+switch sctType
+    case 2 % Tabulated
+        pdfVals = ampfunc.evalAmp(:);
+        samples = numel(pdfVals);
+        
+        if(dim == 3)
+            T = linspace(0, pi, samples);
+            T = T(:);
+            P = linspace(0, 2*pi, 1e3 + 1);
+            
+            [theta,phi] = ndgrid(T,P);
+            
+            theta = theta(:);
+            phi = phi(:);
+            
+            pdfVals = repmat(pdfVals,[numel(P),1]);
+        end
+        
+        if(dim == 2)
+            theta = linspace(0, 2*pi, samples);
+            theta = theta(:);
+        end
+    case 3 % HG
+        if(dim == 3)
+            theta = linspace(0, pi, samples + 1);
+            theta = theta(:);
+            phi = rand(samples+1,1)*2*pi;
+            phi = phi(:);
+        end
+        
+        if(dim == 2)
+            theta = linspace(0, 2*pi, samples);
+            theta = theta(:);
+        end
 end
 
 if(dim == 2)
-    theta = linspace(-pi, pi, samples + 1);
     vectors = [sin(theta(:)),cos(theta(:))];
     normFactor = 1;
 end
 
-if(dim == 3)
-%     [X,Y,Z] = sphere(samples);
-%     vectors = [X(:),Y(:),Z(:)];
-%     normFactor = sqrt(X(:).^2 + Y(:).^2);
-    theta = linspace(-pi, pi, samples + 1);
-    theta = theta(:);
-    phi = rand(samples+1,1)*2*pi;
-    
+if(dim == 3)    
     X = sin(theta).*sin(phi);
     Y = sin(theta).*cos(phi);
     Z = cos(theta);
@@ -89,6 +120,10 @@ end
 if(sctType == 3)
     hgVals = sqrt(evaluateHG(vectors(:,end), ampfunc, 1, dim));
     wtheta = normFactor.*hgVals;
+end
+
+if(sctType == 2)
+    wtheta = normFactor.*pdfVals(:);
 end
 
 movmfRes = wmovmf(vectors,wtheta(:),k,iterations,mean(wtheta),useGpu);

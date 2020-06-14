@@ -7,8 +7,6 @@ config.iterationsRender = 1e0;
 
 % t/f if use gpu (for fitting algorithm)
 config.useGpu = true;
-config.mcGpuV = true;
-config.mcGpuL = false;
 
 % set rng before rendering.
 % comment to avoid seeting rng.
@@ -18,8 +16,7 @@ config.mcGpuL = false;
 %% Sample
 config.dimNum = 3;
 config.wavelenght = 1;
-config.scattgMFP = 1e8;
-config.attMFP = 1e8;
+config.MFP = 5e3;
 config.boxDepth = 1e4;
 config.boxAxial = 1e8;
 
@@ -45,14 +42,14 @@ config.focalPointsV.dim = 2;
 
 % -------------
 % focal illumination directions
-config.focalDirectionsL.base = deg2rad([-80,0,80]);
-config.focalDirectionsL.xyGrid = false;
+config.focalDirectionsL.theta = [deg2rad([-10,0,10]),deg2rad(180 + [-10,0,10])];
+config.focalDirectionsL.phi = 0;
 config.focalDirectionsL.dim = 3;
 
 % -------------
 % focal view directions
-config.focalDirectionsV.base = deg2rad([-80,0,80]);
-config.focalDirectionsV.xyGrid = false;
+config.focalDirectionsV.theta = [deg2rad([-10,0,10]),deg2rad(180 + [-10,0,10])];
+config.focalDirectionsV.phi = 0;
 config.focalDirectionsV.dim = 3;
 
 
@@ -75,7 +72,4 @@ config.vmf_samples = 1e6;
 %% importance sampling
 % the tens digit is for direction, and the first digit is for position
 % choose 1 for random, and 3 for gaussian
-config.sampleFlag = 44;
-
-% kappa g parameter
-config.kappaG = 100;
+config.sampleFlag = 54;

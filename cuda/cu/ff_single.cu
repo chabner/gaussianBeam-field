@@ -14,7 +14,7 @@ __constant__ int32_t wSize;
 
 __constant__ double fastConstCopy[5];
 
-__global__ void ff_single(double2* us, double2* u, double2* Wl, double2* e_l0, double* af_ang_vl,
+__global__ void ff_single(double2* us, double2* Wl, double2* e_l0, double* af_ang_vl,
     const double* v1, const double* v2, const double* v3,
     const double* dir_v1, const double* dir_v2, const double* dir_v3)
 {
@@ -99,12 +99,9 @@ __global__ void ff_single(double2* us, double2* u, double2* Wl, double2* e_l0, d
             tpath.x = fma(vwMult.x, constCont[0], -vwMult.y * constCont[1]);
             tpath.y = fma(vwMult.x, constCont[1], vwMult.y * constCont[0]);
 
-            // add to u and us
+            // add to us
             us[uIdx].x += tpath.x;
             us[uIdx].y += tpath.y;
-
-            u[uIdx].x += tpath.x;
-            u[uIdx].y += tpath.y;
         }
     }
 }

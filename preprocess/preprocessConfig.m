@@ -1,4 +1,4 @@
-function [config,gpuFunc] = preprocessConfig(config)
+function [config] = preprocessConfig(config)
 %% Sample
 config.box_min = [-config.boxAxial/2;-config.boxAxial/2;-config.boxDepth/2];
 config.box_max = [config.boxAxial/2;config.boxAxial/2;config.boxDepth/2];
@@ -8,10 +8,11 @@ if(isfield(config,'boxShift'))
     config.box_max = config.box_max + config.boxShift;
 end
 
-if(config.mcGpuL)
-    config.box_min = gpuArray(config.box_min);
-    config.box_max = gpuArray(config.box_max);
+if(~isfield(config,'multiplePaths'))
+    config.multiplePaths = 1;
 end
+
+correlationActive = isfield(config.focalPointsL,'base_2');
 
 %% Aperture
 % Focal points - L
@@ -52,47 +53,65 @@ if(isfield(config,'focalPointsVshift') && isfield(config.focalPointsVshift,'vShi
 end
 
 % Focal directions - L
-if(config.focalDirectionsL.xyGrid)
-    ldiryVec = sin(config.focalDirectionsL.base);
+if(isfield(config,'focalDirectionsL') && isfield(config.focalDirectionsL,'theta'))
+    [T,P] = ndgrid( ...
+        config.focalDirectionsL.theta, ...
+        config.focalDirectionsL.phi);
+
+    config.focalDirectionsL.vector = [ ...
+        (sin(T(:)).').*(cos(P(:)).') ; ...
+        (sin(T(:)).').*(sin(P(:)).') ; ...
+        (cos(T(:)).') ]; 
+elseif(isfield(config,'focalDirectionsL') && isfield(config.focalDirectionsL,'base'))
+    if(config.focalDirectionsL.xyGrid)
+        ldiryVec = sin(config.focalDirectionsL.base);
+    else
+        ldiryVec = 0;
+    end
+
+    [focalDirectionsL_X,focalDirectionsL_Y] = ndgrid( ...
+        sin(config.focalDirectionsL.base), ...
+        ldiryVec);
+
+    config.focalDirectionsL.vector = [ ...
+        focalDirectionsL_X(:).' ; ...
+        focalDirectionsL_Y(:).' ; ...
+        sqrt(1 - (focalDirectionsL_X(:).').^2 - (focalDirectionsL_Y(:).').^2)];
 else
-    ldiryVec = 0;
+    config.focalDirectionsL.dim = config.focalPointsL.dim;
+    config.focalDirectionsL.vector = 0 * config.focalPointsL.vector;
+    config.focalDirectionsL.vector(end,:) = 1;
 end
-
-[focalDirectionsL_X,focalDirectionsL_Y] = ndgrid( ...
-    sin(config.focalDirectionsL.base), ...
-    ldiryVec);
-
-config.focalDirectionsL.vector = [ ...
-    focalDirectionsL_X(:).' ; ...
-    focalDirectionsL_Y(:).' ; ...
-    sqrt(1 - (focalDirectionsL_X(:).').^2 - (focalDirectionsL_Y(:).').^2)];
 
 % Focal directions - V
-if(config.focalDirectionsV.xyGrid)
-    vdiryVec = sin(config.focalDirectionsV.base);
+if(isfield(config,'focalDirectionsV') && isfield(config.focalDirectionsV,'theta'))
+    [T,P] = ndgrid( ...
+        config.focalDirectionsV.theta, ...
+        config.focalDirectionsV.phi);
+
+    config.focalDirectionsV.vector = [ ...
+        (sin(T(:)).').*(cos(P(:)).') ; ...
+        (sin(T(:)).').*(sin(P(:)).') ; ...
+        (cos(T(:)).') ]; 
+elseif(isfield(config,'focalDirectionsV') && isfield(config.focalDirectionsV,'base'))
+    if(config.focalDirectionsV.xyGrid)
+        ldiryVec = sin(config.focalDirectionsV.base);
+    else
+        ldiryVec = 0;
+    end
+
+    [focalDirectionsV_X,focalDirectionsV_Y] = ndgrid( ...
+        sin(config.focalDirectionsV.base), ...
+        ldiryVec);
+
+    config.focalDirectionsV.vector = [ ...
+        focalDirectionsV_X(:).' ; ...
+        focalDirectionsV_Y(:).' ; ...
+        sqrt(1 - (focalDirectionsV_X(:).').^2 - (focalDirectionsV_Y(:).').^2)];
 else
-    vdiryVec = 0;
-end
-
-[focalDirectionsV_X,focalDirectionsV_Y] = ndgrid( ...
-    sin(config.focalDirectionsV.base), ...
-    vdiryVec);
-
-config.focalDirectionsV.vector = [ ...
-    focalDirectionsV_X(:).' ; ...
-    focalDirectionsV_Y(:).' ; ...
-    sqrt(1 - (focalDirectionsV_X(:).').^2 - (focalDirectionsV_Y(:).').^2)];
-
-% to gpu
-
-if(config.mcGpuL)
-    config.focalPointsL.vector = gpuArray(config.focalPointsL.vector);
-    config.focalDirectionsL.vector = gpuArray(config.focalDirectionsL.vector);
-end
-
-if(config.mcGpuV)
-    config.focalPointsV.vector = gpuArray(config.focalPointsV.vector);
-    config.focalDirectionsV.vector = gpuArray(config.focalDirectionsV.vector);
+    config.focalDirectionsV.dim = config.focalPointsV.dim;
+    config.focalDirectionsV.vector = 0 * config.focalPointsV.vector;
+    config.focalDirectionsV.vector(end,:) = 1;
 end
 
 config.apertureVmf_l = movmfAperture( ...
@@ -122,32 +141,203 @@ else
         config.focalPointsV.dim , ...
         config.focalDirectionsV.dim);
 end
-%% Scattering function
-if(config.sctType == 3)
-    config.sct_type = 3;
-    config.ampfunc.g = config.g;
-    config.ampfunc.forwardWeight = config.forwardWeight;
+
+%% Aperture - correlation
+if(correlationActive)
+    % Focal points - L
+
+    if(config.focalPointsL.xyGrid)
+        lyVec = config.focalPointsL.base_2;
+    else
+        lyVec = 0;
+    end
+
+    [focalPointsL_X,focalPointsL_Y,focalPointsL_Z] = ndgrid( ...
+        config.focalPointsL.base_2, ...
+        lyVec, ...
+        config.focalPointsL.plain_2);
+    config.focalPointsL.vector_2 = [focalPointsL_X(:).'; focalPointsL_Y(:).'; focalPointsL_Z(:).'];
+
+    % Focal points - V
+    if(config.focalPointsV.xyGrid)
+        vyVec = config.focalPointsV.base_2;
+    else
+        vyVec = 0;
+    end
+
+    [focalPointsV_X,focalPointsV_Y,focalPointsV_Z] = ndgrid( ...
+        config.focalPointsV.base_2, ...
+        vyVec, ...
+        config.focalPointsV.plain_2);
+    config.focalPointsV.vector_2 = [focalPointsV_X(:).'; focalPointsV_Y(:).'; focalPointsV_Z(:).'];
+
+    % V shift
+    if(isfield(config,'focalPointsVshift') && isfield(config.focalPointsVshift,'vShift_2'))
+        [vShift_X,vShift_Y,vShift_Z] = ndgrid( ...
+            config.focalPointsVshift.vShift_2, ...
+            0, ...
+            0);
+
+        config.focalPointsVshift.vShiftVector_2 = [vShift_X(:).'; vShift_Y(:).'; vShift_Z(:).'];
+    end
+
+    % Focal directions - L
+    if(isfield(config,'focalDirectionsL') && isfield(config.focalDirectionsL,'theta_2'))
+        [T,P] = ndgrid( ...
+            config.focalDirectionsL.theta_2, ...
+            config.focalDirectionsL.phi_2);
+
+        config.focalDirectionsL.vector_2 = [ ...
+            (sin(T(:)).').*(cos(P(:)).') ; ...
+            (sin(T(:)).').*(sin(P(:)).') ; ...
+            (cos(T(:)).') ]; 
+    elseif(isfield(config,'focalDirectionsL') && isfield(config.focalDirectionsL,'base_2'))
+        if(config.focalDirectionsL.xyGrid)
+            ldiryVec = sin(config.focalDirectionsL.base_2);
+        else
+            ldiryVec = 0;
+        end
+
+        [focalDirectionsL_X,focalDirectionsL_Y] = ndgrid( ...
+            sin(config.focalDirectionsL.base_2), ...
+            ldiryVec);
+
+        config.focalDirectionsL.vector_2 = [ ...
+            focalDirectionsL_X(:).' ; ...
+            focalDirectionsL_Y(:).' ; ...
+            sqrt(1 - (focalDirectionsL_X(:).').^2 - (focalDirectionsL_Y(:).').^2)];
+    else
+        config.focalDirectionsL.vector_2 = 0 * config.focalPointsL.vector_2;
+        config.focalDirectionsL.vector_2(end,:) = 1;
+    end
+
+    % Focal directions - V
+    if(isfield(config,'focalDirectionsV') && isfield(config.focalDirectionsV,'theta_2'))
+        [T,P] = ndgrid( ...
+            config.focalDirectionsV.theta_2, ...
+            config.focalDirectionsV.phi_2);
+
+        config.focalDirectionsV.vector_2 = [ ...
+            (sin(T(:)).').*(cos(P(:)).') ; ...
+            (sin(T(:)).').*(sin(P(:)).') ; ...
+            (cos(T(:)).') ]; 
+    elseif(isfield(config,'focalDirectionsV') && isfield(config.focalDirectionsV,'base_2'))
+        if(config.focalDirectionsV.xyGrid)
+            ldiryVec = sin(config.focalDirectionsV.base_2);
+        else
+            ldiryVec = 0;
+        end
+
+        [focalDirectionsV_X,focalDirectionsV_Y] = ndgrid( ...
+            sin(config.focalDirectionsV.base_2), ...
+            ldiryVec);
+
+        config.focalDirectionsV.vector_2 = [ ...
+            focalDirectionsV_X(:).' ; ...
+            focalDirectionsV_Y(:).' ; ...
+            sqrt(1 - (focalDirectionsV_X(:).').^2 - (focalDirectionsV_Y(:).').^2)];
+    else
+        config.focalDirectionsV.vector_2 = 0 * config.focalPointsV.vector_2;
+        config.focalDirectionsV.vector_2(end,:) = 1;
+    end
+
+    apertureVmf_l_2 = movmfAperture( ...
+        config.mask_varL , ...
+        config.focalPointsL.vector_2 , ...
+        -1 , ...
+        config.focalDirectionsL.vector_2 , ...
+        config.focalPointsL.dim , ...
+        config.focalDirectionsL.dim);
+
+    if(isfield(config,'focalPointsVshift') && isfield(config.focalPointsVshift,'vShift_2'))
+        apertureVmf_v_2 = movmfAperture( ...
+            config.mask_varV , ...
+            config.focalPointsV.vector_2 , ...
+            1 , ...
+            config.focalDirectionsV.vector_2 , ...
+            config.focalPointsV.dim , ...
+            config.focalDirectionsV.dim, ...
+            config.focalPointsVshift.vShiftVector_2, ...
+            config.focalPointsVshift.dim);
+    else
+        apertureVmf_v_2 = movmfAperture( ...
+            config.mask_varV , ...
+            config.focalPointsV.vector_2 , ...
+            1 , ...
+            config.focalDirectionsV.vector_2 , ...
+            config.focalPointsV.dim , ...
+            config.focalDirectionsV.dim);
+    end
+
+    config.apertureVmf_l = movmfUnite(config.apertureVmf_l,apertureVmf_l_2);
+    config.apertureVmf_v = movmfUnite(config.apertureVmf_v,apertureVmf_v_2);
+    
 end
 
-if(isfield(config,'g0'))
-    config.sct_type = 3;
-    config.ampfunc0.g = config.g0;
-    config.ampfunc0.forwardWeight = config.forwardWeight;
-else
-    config.ampfunc0 = inf;
+%% Scattering function - entry
+entry.sctType = config.sctType;
+entry.dim = config.dimNum;
+entry.vmf_k = config.vmf_k;
+entry.vmf_iterations = config.vmf_iterations;
+
+if(config.sctType == 3)
+    entry.g = config.g;
+    entry.forwardWeight = config.forwardWeight;
+    entry.vmf_samples = config.vmf_samples;
+    vmf_samples = entry.vmf_samples;
+end
+
+if(config.sctType == 4)
+    entry.g = config.g;
+    entry.forwardWeight = config.forwardWeight;
+    entry.vmfKappaG = config.vmfKappaG;
+    vmf_samples = 0;
+end
+
+if(config.sctType == 2)
+    entry.pdf = config.pdf;
+    vmf_samples = 0;
 end
 
 %% Scattering function - throughput
+entryHash = DataHash(entry);
+
 preprocessPath = which('vmfCache.mat');
 if(isempty(preprocessPath))
-    config.movmf = movmfBuild(config.sctType, config.ampfunc, config.dimNum, config.vmf_k, config.vmf_samples, config.vmf_iterations, config.useGpu);
+    if(config.sctType == 3)
+        config.ampfunc.g = config.g;
+        config.ampfunc.forwardWeight = config.forwardWeight;
+    end
     
-    vmfCache(1).g = config.g;
-    vmfCache(1).forwardWeight = config.forwardWeight;
-    vmfCache(1).vmf_k = config.vmf_k;
-    vmfCache(1).vmf_iterations = config.vmf_iterations;
-    vmfCache(1).vmf_samples = config.vmf_samples;
+    if(config.sctType == 4)
+        config.ampfunc.g = config.g;
+        config.ampfunc.forwardWeight = config.forwardWeight;
+        config.ampfunc.vmfKappaG = config.vmfKappaG;
+    end
+
+    if(config.sctType == 2)
+        theta = linspace(0,pi,numel(config.pdf));
+        f = config.pdf;
+        
+        config.ampfunc.cs = mean((abs(f).^2).*sin(theta))*2*pi^2;
+        config.ampfunc.samplePdf = (abs(f(:).').^2) .* sin(theta) ./ ...
+            sum((abs(f(:).').^2) .* sin(theta));
+        config.ampfunc.sampleCdf = cumsum(config.ampfunc.samplePdf);
+        
+        config.ampfunc.evalPdf = (abs(f(:).').^2) ./ config.ampfunc.cs;
+        config.ampfunc.evalAmp = config.ampfunc.evalPdf .^ 0.5;
+        
+        config.ampfunc.sampleIcdf = invCDFvec(config.ampfunc.sampleCdf);
+    end
+    
+    config.movmf = movmfBuild(config.sctType, config.ampfunc, config.dimNum, config.vmf_k, vmf_samples, config.vmf_iterations, config.useGpu);
+    
+    vmfCache(1).entryHash = entryHash;
+    vmfCache(1).entry = entry;
+    vmfCache(1).ampfunc = config.ampfunc;
     vmfCache(1).movmf = config.movmf;
+    
+    config.cacheIdx = 1;
     
     currentFilePath = which('preprocessConfig.m');
     currentFileFolder = regexp(currentFilePath,'C*[\/\\]preprocessConfig.m');
@@ -158,28 +348,50 @@ else
     
     isInCache = false;
     for idxNum = 1:1:numel(vmfCache)
-        if( ...
-            vmfCache(idxNum).g == config.g                             && ...
-            vmfCache(idxNum).forwardWeight == config.forwardWeight     && ...
-            vmfCache(idxNum).vmf_k == config.vmf_k                     && ...
-            vmfCache(idxNum).vmf_iterations == config.vmf_iterations   && ...
-            vmfCache(idxNum).vmf_samples == config.vmf_samples            ...
-        )
+        if(strcmp(entryHash,vmfCache(idxNum).entryHash))
             config.movmf = vmfCache(idxNum).movmf;
+            config.ampfunc = vmfCache(idxNum).ampfunc;
+            config.cacheIdx = idxNum;
             isInCache = true;
             break;
         end
     end
     
     if(~isInCache)
-        config.movmf = movmfBuild(config.sctType, config.ampfunc, config.dimNum, config.vmf_k, config.vmf_samples, config.vmf_iterations, config.useGpu);
         lastElem = numel(vmfCache);
-    
-        vmfCache(lastElem+1).g = config.g;
-        vmfCache(lastElem+1).forwardWeight = config.forwardWeight;
-        vmfCache(lastElem+1).vmf_k = config.vmf_k;
-        vmfCache(lastElem+1).vmf_iterations = config.vmf_iterations;
-        vmfCache(lastElem+1).vmf_samples = config.vmf_samples;
+        config.cacheIdx = lastElem + 1;
+        
+        if(config.sctType == 3)
+            config.ampfunc.g = config.g;
+            config.ampfunc.forwardWeight = config.forwardWeight;
+        end
+        
+        if(config.sctType == 4)
+            config.ampfunc.g = config.g;
+            config.ampfunc.forwardWeight = config.forwardWeight;
+            config.ampfunc.vmfKappaG = config.vmfKappaG;
+        end
+
+        if(config.sctType == 2)
+            theta = linspace(0,pi,numel(config.pdf));
+            f = config.pdf;
+
+            config.ampfunc.cs = mean((abs(f).^2).*sin(theta))*2*pi^2;
+            config.ampfunc.samplePdf = (abs(f(:).').^2) .* sin(theta) ./ ...
+                sum((abs(f(:).').^2) .* sin(theta));
+            config.ampfunc.sampleCdf = cumsum(config.ampfunc.samplePdf);
+
+            config.ampfunc.evalPdf = (abs(f(:).').^2) ./ config.ampfunc.cs;
+            config.ampfunc.evalAmp = config.ampfunc.evalPdf .^ 0.5;
+
+            config.ampfunc.sampleIcdf = invCDFvec(config.ampfunc.sampleCdf);
+        end
+        
+        config.movmf = movmfBuild(config.sctType, config.ampfunc, config.dimNum, config.vmf_k, vmf_samples, config.vmf_iterations, config.useGpu);
+        
+        vmfCache(lastElem+1).entryHash = entryHash;
+        vmfCache(lastElem+1).entry = entry;
+        vmfCache(lastElem+1).ampfunc = config.ampfunc;
         vmfCache(lastElem+1).movmf = config.movmf;
     
         save(preprocessPath,'vmfCache');
@@ -187,76 +399,50 @@ else
 end
 
 %% Importance sampling
+
+if(mod(config.sampleFlag,10) == 7)
+    return;
+end
+
 % Sample 100 different samples, and take the median of px, in order to
 % estimate bad samples
-pxItersNum = 100;
+% pxItersNum = 1e1;
+pxItersNum = 1e3;
 minTorr = 1e-3;
 
 box_w = config.box_max-config.box_min;
 V=prod(box_w);
 
-if(mod(config.sampleFlag,10) == 3)
-    config.smpPreprocess = preprocess_smpVmfBeam(config,lightNum,1e4);
-end
+% if(mod(config.sampleFlag,10) == 3)
+%     config.smpPreprocess = preprocess_smpVmfBeam(config,lightNum,1e4);
+% end
 
 if(mod(config.sampleFlag,10) == 4)
-    config.smpPreprocess = preprocess_smpVmfBeamSum(config,1e4);
+    config.smpPreprocess = preprocess_smpVmfBeamSum(config,config.apertureVmf_l);
 end
 
-px = zeros(1,pxItersNum,class(config.apertureVmf_l.alpha));
-
-for iterNum = 1:1:pxItersNum
-    switch mod(config.sampleFlag,10)
+switch mod(config.sampleFlag,10)
     case 1
         % uniform distribution
-        px(iterNum) = 1;
+        px = 1;
     case 2
         % exponential distribution
-        [~,px(iterNum)]=expSmpX(config.box_min,config.box_max,[0;0;1],1/config.attMFP);
+        [~,px]=expSmpX(config.box_min,config.box_max,[0;0;1],1/config.MFP,pxItersNum);
     case 3
-        % gaussian sampling
-        apertureVmf_l = movmfAperture(config.mask_varL,config.focalPointsL{lightNum},-1,config.focalDirectionsL{lightNum});
-        [~,px(iterNum)] = smpVmfBeam(apertureVmf_l,config.smpPreprocess{lightNum},config.box_min,config.box_max);
-        px(iterNum) = px(iterNum) * V;
+%         % gaussian sampling
+%         apertureVmf_l = movmfAperture(config.mask_varL,config.focalPointsL{lightNum},-1,config.focalDirectionsL{lightNum});
+%         [~,px(iterNum)] = smpVmfBeam(apertureVmf_l,config.smpPreprocess{lightNum},config.box_min,config.box_max);
+%         px(iterNum) = px(iterNum) * V;
     case 4
         % gaussian sampling
-        [~,px(iterNum)] = smpVmfBeamSum(config.apertureVmf_l,config.smpPreprocess,config.box_min,config.box_max);
-        px(iterNum) = px(iterNum) * V;
-    end
+        [~,px] = smpVmfBeamSum(config.apertureVmf_l,config.smpPreprocess,config.box_min,config.box_max,pxItersNum);
+        px = px * V;
+    case 6
+        % known scattering positions
+        px = 1;
 end
 
-config.smpPreprocess(1).pxMin = median(px) * minTorr;
 
-%% GPU code
-if(config.mcGpuL || config.mcGpuV)
-    gpuFunc.active = true;
-    u_size = max(config.apertureVmf_l.dim,config.apertureVmf_v.dim);
-    u_size = u_size(2:end);
-    
-    lDim = config.apertureVmf_l.dim;
-    lDim(1) = config.movmf.dim(1);
-    
-    gpuFunc.integrateMult = parallel.gpu.CUDAKernel('integrateMult.ptx','integrateMult.cu');
-    gpuFunc.integrateMult.GridSize = [ceil(prod(u_size)/gpuFunc.integrateMult.MaxThreadsPerBlock) 1 1];
-    gpuFunc.integrateMult.ThreadBlockSize = [gpuFunc.integrateMult.MaxThreadsPerBlock 1 1];
-    
-    setConstantMemory(gpuFunc.integrateMult,'uDimProd',int32(cumprod(u_size)));
-    setConstantMemory(gpuFunc.integrateMult,'lDim',int32(lDim));
-    setConstantMemory(gpuFunc.integrateMult,'vDim',int32(config.apertureVmf_v.dim));
-    setConstantMemory(gpuFunc.integrateMult,'lMixtureAlpha',config.movmf.alpha);
-    
-    
-    gpuFunc.MSintegrateMult = parallel.gpu.CUDAKernel('MSintegrateMult.ptx','MSintegrateMult.cu');
-    gpuFunc.MSintegrateMult.GridSize = [ceil(prod(u_size)/gpuFunc.MSintegrateMult.MaxThreadsPerBlock) 1 1];
-    gpuFunc.MSintegrateMult.ThreadBlockSize = [gpuFunc.MSintegrateMult.MaxThreadsPerBlock 1 1];
-    
-    setConstantMemory(gpuFunc.MSintegrateMult,'uDimProd',int32(cumprod(u_size)));
-    setConstantMemory(gpuFunc.MSintegrateMult,'lDim',int32(config.apertureVmf_l.dim));
-    setConstantMemory(gpuFunc.MSintegrateMult,'vDim',int32(config.apertureVmf_v.dim));
-    setConstantMemory(gpuFunc.MSintegrateMult,'lMixtureAlpha',config.movmf.alpha);
-    setConstantMemory(gpuFunc.MSintegrateMult,'mixturesNum',int32(config.movmf.dim(1)));
-else
-    gpuFunc.active = false;
-end
+config.smpPreprocess(1).pxMin = median(px,6) * minTorr;
 
 end

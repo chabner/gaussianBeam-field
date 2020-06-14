@@ -4,11 +4,10 @@ config.projectName = mfilename;
 
 % iterations to render single correlation image
 config.iterationsRender = 1e3;
+config.multiplePaths = 1e0;
 
 % t/f if use gpu (for fitting algorithm)
 config.useGpu = true;
-config.mcGpuV = true;
-config.mcGpuL = false;
 
 % set rng before rendering.
 % comment to avoid seeting rng.
@@ -18,10 +17,9 @@ config.rng = 5;
 %% Sample
 config.dimNum = 3;
 config.wavelenght = 1;
-config.scattgMFP = 10;
-config.attMFP = 10;
+config.MFP = 10;
 config.boxDepth = 20;
-config.boxAxial = 20;
+config.boxAxial = 25;
 config.boxShift = [0;0;0];
 
 %% Aperture
@@ -46,14 +44,14 @@ config.focalPointsV.dim = 3;
 
 % -------------
 % focal illumination directions
-config.focalDirectionsL.base = 1 * deg2rad(-5:1:5);
-config.focalDirectionsL.xyGrid = false;
+config.focalDirectionsL.theta = 1 * deg2rad(-5:1:5);
+config.focalDirectionsL.phi = 0;
 config.focalDirectionsL.dim = 2;
 
 % -------------
 % focal view directions
-config.focalDirectionsV.base = 1 * deg2rad(5:-1:-5);
-config.focalDirectionsV.xyGrid = false;
+config.focalDirectionsV.theta = 1 * deg2rad(5:-1:-5);
+config.focalDirectionsV.phi = 0;
 config.focalDirectionsV.dim = 2;
 
 %% Scattering fnuction
@@ -73,9 +71,4 @@ config.vmf_iterations = 1e5;
 config.vmf_samples = 1e6;
 
 %% importance sampling
-% the tens digit is for direction, and the first digit is for position
-% choose 1 for random, and 3 for gaussian
 config.sampleFlag = 11;
-
-% kappa g parameter
-config.kappaG = 100;

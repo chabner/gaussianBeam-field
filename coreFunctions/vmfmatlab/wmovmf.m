@@ -40,7 +40,7 @@ dim   = V;
 % set initial (and final) directions as forward / backward
 mu0 = zeros(1,dim);
 mu0(end) = 1;
-significantDirection = sign(mean(W .* vectors(:,3)));
+significantDirection = sign(mean(W .* vectors(:,end)));
 
 if(k == 1)
     mu = significantDirection * mu0;
@@ -107,7 +107,39 @@ while (diff > epsilon  && iteration < iterations)
 % while (iteration < 10)
   iteration = iteration + 1;
   
-  logNormalize  = log(alpha) + (dim/2-1)*log(kappa) - (dim/2)*log(2*pi) - logbesseli(kappa); 
+  if(mod(iteration,100) == 0)
+      finishLoopFlag = 0;
+      
+      while finishLoopFlag~=2
+        finishLoopFlag = 0;
+        kappaNum1 = 1;
+        while (kappaNum1 <= numel(kappa)) && (finishLoopFlag == 0)
+            kappaNum2 = 1;
+            while (kappaNum2 <= numel(kappa)) && (finishLoopFlag == 0)
+                if(kappaNum1 ~= kappaNum2 && ...
+                        abs(kappa(kappaNum1) - kappa(kappaNum2)) < epsilon && ...
+                        mu(kappaNum1,end) == mu(kappaNum2,end))
+                   kappa(kappaNum2) = [];
+                   alpha(kappaNum1) = alpha(kappaNum1) + alpha(kappaNum2);
+                   alpha(kappaNum2) = [];
+                   mu(kappaNum2,:) = [];
+                   
+                   finishLoopFlag = 1;
+                   k = numel(alpha);
+                end
+                
+                kappaNum2 = kappaNum2 + 1;
+            end
+            kappaNum1 = kappaNum1 + 1;
+        end
+        
+        if(finishLoopFlag == 0)
+            finishLoopFlag = 2;
+        end
+      end
+  end
+  
+  logNormalize  = log(alpha) + (dim/2-1)*log(kappa) - (dim/2)*log(2*pi) - logbesseli(dim,kappa); 
   
   if(dim == 2)
       logNormalize(kappa == 0) = log(alpha(kappa == 0)) - log(2*pi);
@@ -127,6 +159,7 @@ while (diff > epsilon  && iteration < iterations)
       value = sum(sum(lpmVals(~isinf(lpmVals))));
       diff = oldvalue - value;
       
+      
       if((numel(kappa) == numel(kappa_old)) && (sum(abs(kappa - kappa_old)) < epsilon))
           diff = 0;
       end
@@ -135,12 +168,20 @@ while (diff > epsilon  && iteration < iterations)
   
   % updating component parameters
   probMat = exp(logProbMat);
+%   mean(probMat(:) - W(:))
   alpha  = sum(probMat);
   
   normMu   = sqrt(sum((probMat'*vectors).^2,2));
-  rbar  = normMu.'./alpha;
-    
+  rbar  = gather(normMu.'./alpha);
+
   kappa = (rbar*dim - rbar.^3)./(1-rbar.^2);
+  
+  for newtonIter = 1:1:100
+      A_k = besseli(dim/2,kappa,1) ./ besseli(dim/2-1,kappa,1);
+      A_k_tag = 1 - A_k.^2 - ((dim - 1) ./ kappa) .* A_k;
+      kappa = kappa - (A_k - rbar) ./ A_k_tag;
+  end
+  
   alpha = alpha/(D*meanW);
   
   if(dcComponent)
@@ -172,15 +213,29 @@ end
 kappa = gather(kappa);
 mu = gather(mu);
 alpha = gather(alpha);
-c = (dim/2-1)*log(kappa) - (dim/2)*log(2*pi) - logbesseli(kappa);
-c(kappa == 0) = - log(4*pi);
+c = (dim/2-1)*log(kappa) - (dim/2)*log(2*pi) - logbesseli(dim,kappa);
+
+if(dim == 2)
+    c(kappa == 0) = - log(2*pi);
+end
+
+if(dim == 3)
+    c(kappa == 0) = - log(4*pi);
+end
 
 meanVals = 0;
 for kNum = 1:1:k
     mu_k = mu(kNum,:);
-    meanVals = meanVals + mean(alpha(kNum) * ...
-        exp(kappa(kNum) * mu_k * vectors.' + c(kNum)) .* ...
-        sqrt(1-vectors(:,3).^2).');
+    if(dim == 3)
+        meanVals = meanVals + mean(alpha(kNum) * ...
+            exp(kappa(kNum) * mu_k * vectors.' + c(kNum)) .* ...
+            sqrt(1-vectors(:,end).^2).');
+    end
+    
+    if(dim == 2)
+        meanVals = meanVals + mean(alpha(kNum) * ...
+            exp(kappa(kNum) * mu_k * vectors.' + c(kNum)));
+    end
 end
 
 meanVals = gather(meanVals);
@@ -188,12 +243,16 @@ meanVals = gather(meanVals);
 alpha = (hgMean/meanVals) * alpha;
 kappaMu = kappa .* mu.';
 
-movmf.mu1 = complex(kappaMu(1,:).');
-movmf.mu2 = complex(kappaMu(2,:).');
-movmf.mu3 = complex(kappaMu(3,:).');
+movmf.mu1 = kappaMu(1,:).';
+movmf.mu2 = kappaMu(2,:).';
+
+if(dim == 3)
+    movmf.mu3 = kappaMu(3,:).';
+end
+
 movmf.alpha = alpha(:);
-movmf.c = complex(c(:));
+movmf.c = gather(c(:));
 movmf.dim = size(movmf.alpha);
-movmf.dim(end+1:4) = 1;
+movmf.dim(end+1:5) = 1;
 
 end

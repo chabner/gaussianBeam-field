@@ -1,32 +1,25 @@
-function [u,us,xRep] = run_rendering(config,gpuFunc) 
+function [u,us,xRep,x,w,pxpwVec] = run_rendering(config) 
 
 if(isfield(config,'rng'))
 	rng(config.rng);
 end
 
-[u,us,~,~,xRep] = MCfieldMOvMF( ...
-  [1/config.scattgMFP,1/config.attMFP] , ... sigt
+[u,us,~,xRep,~,x,w,pxpwVec] = MCfieldMOvMF( ...
+  1/config.MFP,                          ... sigt
   1,                                     ... albedo
   config.box_min,                        ... box_min
   config.box_max,                        ... box_max
-  config.apertureVmf_l,                  ... apertureVmf_l
-  config.apertureVmf_v,                  ... apertureVmf_v
-  1,                                     ... signl
-  1,                                     ... signv
-  config.focalDirectionsL.vector,        ... dirl
-  config.focalDirectionsV.vector,        ... dirv
   config.iterationsRender,               ... maxItr
+  config.multiplePaths,                  ... pathsNum
   config.wavelenght,                     ... lambda
   config.sampleFlag,                     ... smpFlg
   config.smpPreprocess,                  ... smpFunc
   config.movmf,                          ... movmf
-  config.sct_type,                       ... sct_type
+  config.sctType,                        ... sct_type
   config.ampfunc,                        ... ampfunc
-  gpuFunc                                ... gpuFunc
+  config.useGpu,                         ... gpuEnable
+  config.apertureVmf_l,                  ... apertureVmf_l
+  config.apertureVmf_v                   ... apertureVmf_v
 );
 
-% if(config.mcGpuV || config.mcGpuL)
-%     u = gather(u);
-%     us = gather(us);
-% end
 end

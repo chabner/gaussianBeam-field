@@ -11,6 +11,7 @@ function af_v = evalampfunc_general(cosang, sct_type,ampfunc,dim)
            % provided amplitude function
            ang = acos(cosang);
            af_v = evalampfunc_amplitude(ampfunc,ang,dim);
+           af_v = af_v(:).';
 
        case {3,4}
            % HG scattering

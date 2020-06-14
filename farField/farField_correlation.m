@@ -1,37 +1,4 @@
 function [C_ff,Cs_ff] = farField_correlation(config,l_base,v_base,itersNum) 
-%% GPU code
-if(config.mcGpuL || config.mcGpuV)
-    gpuFunc.active = true;
-    gridSize = 2*(numel(v_base)^2);
-    
-    gpuFunc.ff_ms = parallel.gpu.CUDAKernel('ff_ms.ptx','ff_ms.cu');
-    gpuFunc.ff_ms.GridSize = [ceil((2*gridSize)/gpuFunc.ff_ms.MaxThreadsPerBlock) 1 1];
-    gpuFunc.ff_ms.ThreadBlockSize = [gpuFunc.ff_ms.MaxThreadsPerBlock 1 1];
-    
-    setConstantMemory(gpuFunc.ff_ms,'vSize',int32(gridSize));
-    setConstantMemory(gpuFunc.ff_ms,'lSize',int32(2));
-    setConstantMemory(gpuFunc.ff_ms,'box_min',config.box_min);
-    setConstantMemory(gpuFunc.ff_ms,'box_max',config.box_max);
-    setConstantMemory(gpuFunc.ff_ms,'fw',config.forwardWeight);
-    setConstantMemory(gpuFunc.ff_ms,'sigt',1/(2*config.attMFP));
-    setConstantMemory(gpuFunc.ff_ms,'g_up',(1 - config.g * config.g)/(4*pi));
-    setConstantMemory(gpuFunc.ff_ms,'g_down1',1 + config.g * config.g);
-    setConstantMemory(gpuFunc.ff_ms,'g_down2',-2 * config.g);
-    
-    gpuFunc.ff_single = parallel.gpu.CUDAKernel('ff_single.ptx','ff_single.cu');
-    gpuFunc.ff_single.GridSize = [ceil((2*gridSize)/gpuFunc.ff_single.MaxThreadsPerBlock) 1 1];
-    gpuFunc.ff_single.ThreadBlockSize = [gpuFunc.ff_single.MaxThreadsPerBlock 1 1];
-    
-    setConstantMemory(gpuFunc.ff_single,'vSize',int32(gridSize));
-    setConstantMemory(gpuFunc.ff_single,'lSize',int32(2));
-    setConstantMemory(gpuFunc.ff_single,'wSize',int32(2));
-    setConstantMemory(gpuFunc.ff_single,'box_min',config.box_min);
-    setConstantMemory(gpuFunc.ff_single,'box_max',config.box_max);
-    setConstantMemory(gpuFunc.ff_single,'sigt',1/(2*config.attMFP));
-else
-    gpuFunc.active = false;
-end
-
 %% GB code
 [v_x,v_y] = ndgrid(v_base,v_base);
 v_x = v_x(:).'; v_y = v_y(:).';
@@ -41,11 +8,6 @@ N_v = numel(v_base).^2;
 
 C_ff = zeros(N_v,N_l);
 Cs_ff = C_ff;
-
-if(gpuFunc.active)
-    C_ff = gpuArray(complex(C_ff));
-    Cs_ff = gpuArray(complex(Cs_ff));
-end
 
 for lNum = 1:1:numel(l_base)
     l_x = l_base(lNum)/2;

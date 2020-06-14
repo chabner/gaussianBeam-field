@@ -3,13 +3,20 @@
 #include "math.h"
 #include "stdint.h"
 
-__constant__ int32_t uDimProd[3];
-__constant__ int32_t lDim[4];
-__constant__ int32_t vDim[4];
-__constant__ int32_t mixturesNum;
-__constant__ double2 randPhase;
-__constant__ double lMixtureAlpha[32];
+#define PI 3.141592653589793238
 
+__constant__ double box_min[3];
+__constant__ double box_max[3];
+__constant__ double sigt; // sigt/2
+
+__constant__ int32_t dirDimNum; // which dim the directions are? 2/3/4
+
+__constant__ int32_t uDimProd[5];
+__constant__ int32_t lDim[5];
+__constant__ int32_t vDim[5];
+__constant__ int32_t mixturesNum;
+
+__constant__ double lMixtureAlpha[32];
 
 
 __forceinline __device__ double2 operator +(double2 a, double2 b)
@@ -81,40 +88,99 @@ __forceinline __device__ double2 complexExponent(double2 a)
 
 __forceinline __device__ void complexIncrease(double2* address, double2 val)
 {
-    //atomicAdd(&(*address).x, val.x);
-    //atomicAdd(&(*address).y, val.y);
     (*address).x += val.x;
     (*address).y += val.y;
 }
 
-__global__ void integrateMult(double2* u, const double2* el,
-    const double2* thVMu1, const double2* thVMu2, const double2* thVMu3, const double2* thVC,
+__global__ void MSintegrateMult(double2* u, const double2* el, const double* dirv,
+    const double* x, const double2* randomPhase, const bool* activatedPaths,
+    const double2* vApertureMu1, const double2* vApertureMu2, const double2* vApertureMu3, const double2* vApertureC,
     const double* mixtureMu1, const double* mixtureMu2, const double* mixtureMu3, const double* mixtureC)
 {
     int uIdx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (uIdx < uDimProd[2])
+    if (uIdx < uDimProd[4])
     {
-        int3 uDimIdx;
-        uDimIdx.z = uIdx / (uDimProd[1]);
-        uDimIdx.y = (uIdx - uDimIdx.z * (uDimProd[1])) / uDimProd[0];
-        uDimIdx.x = uIdx % uDimProd[0];
-        int lIdx = (lDim[1] > 1)* uDimIdx.x + lDim[1] * (lDim[2] > 1)* uDimIdx.y + lDim[1] * lDim[2] * (lDim[3] > 1)* uDimIdx.z;
-        int vIdx = (vDim[1] > 1)* uDimIdx.x + vDim[1] * (vDim[2] > 1)* uDimIdx.y + vDim[1] * vDim[2] * (vDim[3] > 1)* uDimIdx.z;
-        double2 sqrtMu;
-        int currlIdx;
+        int uDimIdx[5];
+        uDimIdx[4] = uIdx / (uDimProd[3]);
+        uDimIdx[3] = (uIdx - uDimIdx[4] * (uDimProd[3])) / uDimProd[2];
+        uDimIdx[2] = (uIdx - uDimIdx[4] * (uDimProd[3]) - uDimIdx[3] * (uDimProd[2])) / uDimProd[1];
+        uDimIdx[1] = (uIdx - uDimIdx[4] * (uDimProd[3]) - uDimIdx[3] * (uDimProd[2]) - uDimIdx[2] * (uDimProd[1])) / uDimProd[0];
+        uDimIdx[0] = uIdx % uDimProd[0];
 
-        double2 vMu1 = thVMu1[vIdx];
-        double2 vMu2 = thVMu2[vIdx];
-        double2 vMu3 = thVMu3[vIdx];
-        double2 vC = thVMu1[vIdx];
-        double2 elVal = el[lIdx];
-
-        for (int mixtureIdx = 0; mixtureIdx < mixturesNum; mixtureIdx++)
+        if (activatedPaths[uDimIdx[4]])
         {
-            sqrtMu = complexSqrt(complexSquare(vMu1 + mixtureMu1[mixtureIdx]) +
-                complexSquare(vMu2 + mixtureMu2[mixtureIdx]) +
-                complexSquare(vMu3 + mixtureMu3[mixtureIdx]));
-            complexIncrease(u + uIdx, (lMixtureAlpha[mixtureIdx] * randPhase) * (elVal * complexExponent(vC + mixtureC[mixtureIdx] + sqrtMu) / sqrtMu));
+            int lIdx = (lDim[1] > 1)* uDimIdx[0] + lDim[1] * (lDim[2] > 1)* uDimIdx[1] + lDim[1] * lDim[2] * (lDim[3] > 1)* uDimIdx[2] +
+                lDim[1] * lDim[2] * lDim[3] * uDimIdx[3] + lDim[1] * lDim[2] * lDim[3] * lDim[4] * uDimIdx[4];
+
+            int vIdx = (vDim[1] > 1)* uDimIdx[0] + vDim[1] * (vDim[2] > 1)* uDimIdx[1] + vDim[1] * vDim[2] * (vDim[3] > 1)* uDimIdx[2] +
+                vDim[1] * vDim[2] * vDim[3] * uDimIdx[3];
+
+            int dirIdx = uDimIdx[dirDimNum - 2] + vDim[dirDimNum - 1] * uDimIdx[3];
+
+            double2 sqrtMu;
+            double2 vThroughputMu[3], vThroughputC;
+
+            const double* v = dirv + dirIdx * 3;
+            double bd1, bd2, bd3, dz;
+
+            const double* currX = x + uDimIdx[4] * 3;
+            int currMixtureIdx_x;
+
+            double2 elVal = el[lIdx];
+
+            // Cube dist
+            if (v[0] <= 0)
+            {
+                bd1 = (currX[0] - box_min[0]) / abs(v[0]);
+            }
+            else
+            {
+                bd1 = (box_max[0] - currX[0]) / abs(v[0]);
+            }
+
+            if (v[1] <= 0)
+            {
+                bd2 = (currX[1] - box_min[1]) / abs(v[1]);
+            }
+            else
+            {
+                bd2 = (box_max[1] - currX[1]) / abs(v[1]);
+            }
+
+            if (v[2] <= 0)
+            {
+                bd3 = (currX[2] - box_min[2]) / abs(v[2]);
+            }
+            else
+            {
+                bd3 = (box_max[2] - currX[2]) / abs(v[2]);
+            }
+
+            dz = fmin(fmin(bd1, bd2), bd3);
+
+            // Throughput
+            vThroughputMu[0] = vApertureMu1[vIdx];
+            vThroughputMu[0].y -= 2 * PI * currX[0];
+
+            vThroughputMu[1] = vApertureMu2[vIdx];
+            vThroughputMu[1].y -= 2 * PI * currX[1];
+
+            vThroughputMu[2] = vApertureMu3[vIdx];
+            vThroughputMu[2].y -= 2 * PI * currX[2];
+
+            vThroughputC = vApertureC[vIdx] + (-sigt * dz);
+
+            // Integrate Mult
+            currMixtureIdx_x = mixturesNum * uDimIdx[4];
+            for (int mixtureIdx = 0; mixtureIdx < mixturesNum; mixtureIdx++)
+            {
+                sqrtMu = complexSqrt(complexSquare(vThroughputMu[0] + mixtureMu1[currMixtureIdx_x]) +
+                    complexSquare(vThroughputMu[1] + mixtureMu2[currMixtureIdx_x]) +
+                    complexSquare(vThroughputMu[2] + mixtureMu3[currMixtureIdx_x]));
+                complexIncrease(u + uIdx, (lMixtureAlpha[mixtureIdx] * randomPhase[uDimIdx[4]]) * (elVal * complexExponent(vThroughputC + mixtureC[mixtureIdx] + sqrtMu) / sqrtMu));
+
+                currMixtureIdx_x++;
+            }
         }
     }
 }

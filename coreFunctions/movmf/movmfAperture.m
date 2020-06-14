@@ -10,6 +10,8 @@ function [apertureVmf] = movmfAperture(aperuteStd,focalPoints,focalPointsSign,di
 % OUTPUT:
 % apertureVmf: vmf of the aperture, size of N.
 
+dim = 3;
+
 direction_1 = direction(1,:); direction_1 = direction_1(:); direction_1 = shiftdim(direction_1,-directionDim+1);
 direction_2 = direction(2,:); direction_2 = direction_2(:); direction_2 = shiftdim(direction_2,-directionDim+1);
 direction_3 = direction(3,:); direction_3 = direction_3(:); direction_3 = shiftdim(direction_3,-directionDim+1);
@@ -35,11 +37,13 @@ end
 kappa_r = sqrt(real(apertureVmf.mu1).^2 + real(apertureVmf.mu2).^2 + real(apertureVmf.mu3).^2);
 
 apertureVmf.c = ones(size(kappa_r)) * ...
-    ((3/2-1)*log(kappa_r(1)) - (3/2)*log(2*pi) - logbesseli(kappa_r(1)));
+    ((3/2-1)*log(kappa_r(1)) - (3/2)*log(2*pi) - logbesseli(dim,kappa_r(1)));
 apertureVmf.alpha = apertureVmf.c.^0;
 apertureVmf.c = complex(apertureVmf.c);
 
 apertureVmf.dim = size(apertureVmf.alpha);
-apertureVmf.dim(end+1:4) = 1;
+apertureVmf.dim(end+1:5) = 1;
 apertureVmf.dirDim = directionDim;
+apertureVmf.dir = direction;
+
 end
