@@ -131,7 +131,7 @@ for itr=1:maxItr
     
     dz = cubeDist(x,box_min,box_max,-dirl);
     throughputVmf_l = movmfThroughput(apertureVmf_l,x,-1,sigt,dz);
-    conv_vmf_l0 = movmfConv3(throughputVmf_l,movmf,dirv,apertureVmf_v.dirDim);
+    conv_vmf_l0 = movmfConv(throughputVmf_l,movmf,dirv,apertureVmf_v.dirDim);
     
     % First scattering direction
     %implement an option to sample w isotropically (add apropriate input flag).

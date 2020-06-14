@@ -390,7 +390,7 @@ for itr=1:maxItr
             w0p=(evalampfunc_general(meanl'*w,sct_type,ampfunc0,dim));
         case 3
             % multimode
-            [w,w0p] = smpampfunc_multimode(l,sct_type,ampfunc0);
+            [w,w0p] = smpampfunc_multimode(l_1,sct_type,ampfunc0);
         case 6
             w = ampfunc0.inw(:,1,1,itr);
             w0p = ampfunc0.inPxpw(2,1,itr);

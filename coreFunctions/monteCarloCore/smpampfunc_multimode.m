@@ -18,7 +18,7 @@ function [w,pw] = smpampfunc_multimode(ow, sct_type,ampfunc)
         case {3,4}
             cosa=zeros(1,Ns);
              for j=1:Ns
-               cosa(j) = sampleHG(ampfunc,dim);
+               cosa(j) = sampleHG(ampfunc,dim,1);
              end
 
         
@@ -34,7 +34,7 @@ function [w,pw] = smpampfunc_multimode(ow, sct_type,ampfunc)
         for j=1:Ns
            jj=max(ceil(rand*Nl),1);
  
-           w(:,j) = rotateBytheta(ow(:,jj),cosa(j));
+           w(:,j) = rotateBytheta(ow(:,jj),cosa(j),1);
         
            %tp=evalampfunc_general(w(:,j)'*ow,sct_type,ampfunc,dim);
            %tp=tp.^2;
