@@ -16,42 +16,36 @@ config.useGpu = true;
 %% Sample
 config.dimNum = 3;
 config.wavelenght = 1;
-config.MFP = 5e3;
+config.MFP = 5e2;
 config.boxDepth = 1e4;
 config.boxAxial = 1e8;
+
+%% nf Parameters
+config.nf.parameters.v_x = [0,100];
+config.nf.parameters.v_z = [0,100];
+config.nf.parameters.theta = [deg2rad([-10,0,10]),deg2rad(180 + [-10,0,10])];
 
 %% Aperture
 
 % mask of the gaussian lens
-config.mask_varL = 0.25;
-config.mask_varV = 0.25;
+config.nf.mask_varL = 0.25;
+config.nf.mask_varV = 0.25;
 
-% -------------
-% focal illumination points
-config.focalPointsL.base = 0;
-config.focalPointsL.xyGrid = false;
-config.focalPointsL.plain = 0;
-config.focalPointsL.dim = 2;
+config.nf.focalPointsL.x = @() 0;
+config.nf.focalPointsL.y = @() 0;
+config.nf.focalPointsL.z = @() 0;
 
-% -------------
-% focal view points
-config.focalPointsV.base = [0,100];
-config.focalPointsV.xyGrid = false;
-config.focalPointsV.plain = [0,100];
-config.focalPointsV.dim = 2;
+config.nf.focalPointsV.x = @(v_x) v_x;
+config.nf.focalPointsV.y = @() 0;
+config.nf.focalPointsV.z = @(v_z) v_z;
 
-% -------------
-% focal illumination directions
-config.focalDirectionsL.theta = [deg2rad([-10,0,10]),deg2rad(180 + [-10,0,10])];
-config.focalDirectionsL.phi = 0;
-config.focalDirectionsL.dim = 3;
+config.nf.focalDirectionsL.x = @(theta) sin(theta);
+config.nf.focalDirectionsL.y = @() 0;
+config.nf.focalDirectionsL.z = @(theta) cos(theta);
 
-% -------------
-% focal view directions
-config.focalDirectionsV.theta = [deg2rad([-10,0,10]),deg2rad(180 + [-10,0,10])];
-config.focalDirectionsV.phi = 0;
-config.focalDirectionsV.dim = 3;
-
+config.nf.focalDirectionsV.x = @(theta) sin(theta);
+config.nf.focalDirectionsV.y = @() 0;
+config.nf.focalDirectionsV.z = @(theta) cos(theta);
 
 %% Scattering fnuction
 

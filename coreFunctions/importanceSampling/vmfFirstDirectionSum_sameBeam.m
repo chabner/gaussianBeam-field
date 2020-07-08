@@ -1,19 +1,29 @@
-function [w0,w0p] = vmfFirstDirectionSum_sameBeam(movmf,n)
+function [w0,w0p] = vmfFirstDirectionSum_sameBeam(movmf,alpha,n)
 
 dim = 3;
 
 % normalize
-movmf = movmfAbs(movmf);
-aperturesNum = prod(movmf.dim(2:end));
+size_c = size(movmf.c);
+aperturesNum = prod([size_c(2),size_c(4:end)]);
 totalSmpNum = numel(n);
 
-N = n(:) + aperturesNum * (0:1:(totalSmpNum-1)).';
+if(size_c(2) == 2)
+    N = (mod(n(:),2)+1) + 2 * (0:1:(totalSmpNum-1)).' + 2 * totalSmpNum * floor((n(:) - 1)/2);
+else
+    N = (1:totalSmpNum).' + aperturesNum * (n(:) - 1);
+end
 
-c = movmf.c(:,N);
-mu1 = movmf.mu1(:,N);
-mu2 = movmf.mu2(:,N);
-mu3 = movmf.mu3(:,N);
-alpha = movmf.alpha(:,N);
+if(isa(movmf.c,'gpuArray'))
+    c = real(gather(movmf.c(:,N)));
+    mu1 = real(gather(movmf.mu1(:,N)));
+    mu2 = real(gather(movmf.mu2(:,N)));
+    mu3 = real(gather(movmf.mu3(:,N)));
+else
+    c = real(movmf.c(:,N));
+    mu1 = real(movmf.mu1(:,N));
+    mu2 = real(movmf.mu2(:,N));
+    mu3 = real(movmf.mu3(:,N));
+end
 
 % square
 movmf.c = reshape(permute(c,[1,3,2]) + permute(c,[3,1,2]),[],size(c,2));
@@ -27,10 +37,7 @@ movmf.alpha = reshape(permute(alpha,[1,3,2]) .* permute(alpha,[3,1,2]),[],size(a
 log_C = (dim/2-1)*log(kappa) - (dim/2)*log(2*pi) - logbesseli(dim,kappa);
 log_C(kappa == 0) = - log(4*pi);
 
-c_1_2 = real(movmf.c);
-alpha_1_2 = abs(movmf.alpha);
-
-alpha = alpha_1_2 .* exp(c_1_2 - log_C);
+alpha = movmf.alpha .* exp(movmf.c - log_C);
 
 movmf.alpha = alpha ./ sum(alpha,1);
 movmf.c = log_C;
@@ -47,7 +54,7 @@ end
 muTimesX = movmf.mu1.*w0(1,:) + movmf.mu2.*w0(2,:) + movmf.mu3.*w0(3,:);
 w0p = sqrt(sum(movmf.alpha .* exp(muTimesX + movmf.c) , 1));
 
-w0 = reshape(w0,[dim,1,1,1,1,totalSmpNum]);
-w0p = reshape(w0p,[1,1,1,1,1,totalSmpNum]);
+w0 = reshape(w0,[dim,1,totalSmpNum]);
+w0p = reshape(w0p,[1,1,totalSmpNum]);
 end
 

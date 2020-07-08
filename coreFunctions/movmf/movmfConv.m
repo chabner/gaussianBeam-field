@@ -1,4 +1,4 @@
-function [conv_vmf]=movmfConv(apertureVmfL,scatteringMovmf,dirv,dirDim)
+function [conv_vmf]=movmfConv(apertureVmfL,apertureVmfV,scatteringMovmf)
 % convolve aperture with scattering function
 
 % INPUT
@@ -8,11 +8,15 @@ function [conv_vmf]=movmfConv(apertureVmfL,scatteringMovmf,dirv,dirDim)
 %
 % OUTPUT
 % conv_vmf: convolution result.
-perm = 1:1:5; perm(2) = dirDim; perm(dirDim) = 2;
+% perm = 1:1:5; perm(2) = dirDim; perm(dirDim) = 2;
+% 
+% mu_v1 = permute(dirv(1,:,:,:,:),perm); 
+% mu_v2 = permute(dirv(2,:,:,:,:),perm); 
+% mu_v3 = permute(dirv(3,:,:,:,:),perm);
 
-mu_v1 = permute(dirv(1,:,:,:,:),perm); 
-mu_v2 = permute(dirv(2,:,:,:,:),perm); 
-mu_v3 = permute(dirv(3,:,:,:,:),perm); 
+mu_v1 = apertureVmfV.dir1;
+mu_v2 = apertureVmfV.dir2;
+mu_v3 = apertureVmfV.dir3;
 
 kappaG = real(scatteringMovmf.mu3);
 
@@ -22,6 +26,10 @@ conv_const = kappaG ./ s;
 conv_vmf.mu1 = complex(conv_const .* apertureVmfL.mu1);
 conv_vmf.mu2 = complex(conv_const .* apertureVmfL.mu2);
 conv_vmf.mu3 = complex(conv_const .* apertureVmfL.mu3);
+
+% % fix the maximum where it matters
+% conv_vmf.c = s - conv_const .* (apertureVmfL.mu1 .* mu_v1 + apertureVmfL.mu2 .* mu_v2 + apertureVmfL.mu3 .* mu_v3) + ...
+%     log(2*pi ./ s) + apertureVmfL.c + scatteringMovmf.c;
 
 % normlize to ideal result
 % take absolute, maximal direction is mu_r
@@ -42,12 +50,4 @@ log_exact_conv_max = c+C + log(2*pi) - log(C);
 % fix the maximum where it matters
 conv_vmf.c = - log_estimated_conv_max + log_exact_conv_max;
 
-conv_vmf.dim = size(conv_vmf.mu3);
-conv_vmf.alpha = repmat(scatteringMovmf.alpha,[1,conv_vmf.dim(2:end)]);
-
-if(numel(conv_vmf.dim) == 6)
-    conv_vmf.dim(6) = [];
 end
-
-end
-

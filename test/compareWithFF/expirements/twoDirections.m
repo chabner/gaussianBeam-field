@@ -22,37 +22,47 @@ config.boxDepth = 20;
 config.boxAxial = 25;
 config.boxShift = [0;0;0];
 
+%% ff parameters
+config.ff.parameters.v_x = -0.7:0.04:0.7;
+config.ff.parameters.v_y = -0.7:0.04:0.7;
+config.ff.parameters.l_x = -0.7:0.04:0.7;
+config.ff.parameters.l_y = -0.7:0.04:0.7;
+config.ff.parameters.z_l_sign = [1,-1];
+config.ff.parameters.z_v_sign = [1,-1];
+
+config.ff.v.x = @(v_x) v_x;
+config.ff.v.y = @(v_y) v_y;
+config.ff.v.z = @(v_x,v_y,z_l_sign) z_l_sign .* sqrt(1 - v_x.^2 - v_y.^2);
+config.ff.l.x = @(l_x) l_x;
+config.ff.l.y = @(l_y) l_y;
+config.ff.l.z = @(l_x,l_y,z_v_sign) z_v_sign .* sqrt(1 - l_x.^2 - l_y.^2);
+
+%% nf Parameters
+config.nf.parameters.v_x = -6:0.125:6;
+config.nf.parameters.v_y = -6:0.125:6;
+config.nf.parameters.delta = [-2:1:2,-2:1:2];
+
 %% Aperture
 
 % mask of the gaussian lens
-config.mask_varL = 0.25;
-config.mask_varV = 0.25;
+config.nf.mask_varL = 0.25;
+config.nf.mask_varV = 0.25;
 
-% -------------
-% focal illumination points
-config.focalPointsL.base = [-2:1:2,-2:1:2];
-config.focalPointsL.xyGrid = false;
-config.focalPointsL.plain = -config.boxDepth/2 - 0;
-config.focalPointsL.dim = 2;
+config.nf.focalPointsL.x = @(delta) delta;
+config.nf.focalPointsL.y = @() 0;
+config.nf.focalPointsL.z = @() -10;
 
-% -------------
-% focal view points
-config.focalPointsV.base = -6:0.125:6;
-config.focalPointsV.xyGrid = true;
-config.focalPointsV.plain = -config.boxDepth/2 - 0;
-config.focalPointsV.dim = 3;
+config.nf.focalPointsV.x = @(v_x) v_x;
+config.nf.focalPointsV.y = @(v_y) v_y;
+config.nf.focalPointsV.z = @() -10;
 
-% -------------
-% focal illumination directions
-config.focalDirectionsL.theta = deg2rad([-2:1:2,178:1:182]);
-config.focalDirectionsL.phi = 0;
-config.focalDirectionsL.dim = 2;
+config.nf.focalDirectionsL.x = @(delta) reshape(sin(deg2rad([-2:1:2,178:1:182])),size(delta));
+config.nf.focalDirectionsL.y = @() 0;
+config.nf.focalDirectionsL.z = @(delta) reshape(cos(deg2rad([-2:1:2,178:1:182])),size(delta));
 
-% -------------
-% focal view directions
-config.focalDirectionsV.theta = deg2rad([-2:1:2,178:1:182]);
-config.focalDirectionsV.phi = 0;
-config.focalDirectionsV.dim = 2;
+config.nf.focalDirectionsV.x = @(delta) reshape(sin(deg2rad([-2:1:2,178:1:182])),size(delta));
+config.nf.focalDirectionsV.y = @() 0;
+config.nf.focalDirectionsV.z = @(delta) reshape(cos(deg2rad([-2:1:2,178:1:182])),size(delta));
 
 %% Scattering fnuction
 

@@ -21,58 +21,49 @@ config.MFP = 100;
 config.boxDepth = 300;
 config.boxAxial = 3000;
 
+
+%% nf Parameters
+config.nf.parameters.v_x = (-40:1:40)/4;
+config.nf.parameters.v_y = (-40:1:40)/4;
+config.nf.parameters.delta = 0:1:3;
+
 %% Aperture
 
 % mask of the gaussian lens
-config.mask_varL = 0.25;
-config.mask_varV = 0.25;
+config.nf.mask_varL = 0.25;
+config.nf.mask_varV = 0.25;
 
-% -------------
-% focal illumination points
-config.focalPointsL.xyGrid = false;
-config.focalPointsL.dim = 3;
+config.nf.focalPointsL.x = @(delta) -delta/2;
+config.nf.focalPointsL.y = @() 0;
+config.nf.focalPointsL.z = @() -150;
 
-config.focalPointsL.base = -(0:1:3)/2;
-config.focalPointsL.plain = -config.boxDepth/2;
+config.nf.focalPointsV.x = @(delta,v_x) -delta/2 + v_x;
+config.nf.focalPointsV.y = @(v_y) v_y;
+config.nf.focalPointsV.z = @() -150;
 
-config.focalPointsL.base_2 = (0:1:3)/2;
-config.focalPointsL.plain_2 = -config.boxDepth/2;
+config.nf.focalDirectionsL.x = @() 0;
+config.nf.focalDirectionsL.y = @() 0;
+config.nf.focalDirectionsL.z = @() 1;
 
-% -------------
-% focal view points
-config.focalPointsV.xyGrid = true;
-config.focalPointsV.dim = 2;
+config.nf.focalDirectionsV.x = @() 0;
+config.nf.focalDirectionsV.y = @() 0;
+config.nf.focalDirectionsV.z = @() 1;
 
-config.focalPointsV.base = (-40:1:40)/4;
-config.focalPointsV.plain = config.focalPointsL.plain;
+config.nf.focalPointsL.x_2 = @(delta) delta/2;
+config.nf.focalPointsL.y_2 = @() 0;
+config.nf.focalPointsL.z_2 = @() -150;
 
-config.focalPointsV.base_2 = (-40:1:40)/4;
-config.focalPointsV.plain_2 = config.focalPointsL.plain_2;
+config.nf.focalPointsV.x_2 = @(delta,v_x) delta/2 + v_x;
+config.nf.focalPointsV.y_2 = @(v_y) v_y;
+config.nf.focalPointsV.z_2 = @() -150;
 
-% -------------
-% focal illumination directions
-config.focalDirectionsL.theta = 0;
-config.focalDirectionsL.phi = 0;
-config.focalDirectionsL.dim = 4;
+config.nf.focalDirectionsL.x_2 = @() 0;
+config.nf.focalDirectionsL.y_2 = @() 0;
+config.nf.focalDirectionsL.z_2 = @() 1;
 
-config.focalDirectionsL.theta_2 = 0;
-config.focalDirectionsL.phi_2 = 0;
-
-% -------------
-% focal view directions
-config.focalDirectionsV.theta = 0;
-config.focalDirectionsV.phi = 0;
-config.focalDirectionsV.dim = 4;
-
-config.focalDirectionsV.theta_2 = 0;
-config.focalDirectionsV.phi_2 = 0;
-
-% -------------
-% shift v
-config.focalPointsVshift.vShift = config.focalPointsL.base;
-config.focalPointsVshift.vShift_2 = config.focalPointsL.base_2;
-
-config.focalPointsVshift.dim = 3;
+config.nf.focalDirectionsV.x_2 = @() 0;
+config.nf.focalDirectionsV.y_2 = @() 0;
+config.nf.focalDirectionsV.z_2 = @() 1;
 
 %% Scattering fnuction
 

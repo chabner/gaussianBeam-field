@@ -18,19 +18,19 @@ end
 missX = 0;
 
 %% sample first scatterer
-Naperture = prod(vmfApperture.dim(2:end));
+Naperture = numel(vmfApperture.c);
 
 % sample (x,y)
 [mu_r1, mu_r2, mu_r3] = movmfAbsMu(vmfApperture);
-P0_x = -imag(vmfApperture.mu1)/(2*pi);
-P0_y = -imag(vmfApperture.mu2)/(2*pi);
-P0_z = -imag(vmfApperture.mu3)/(2*pi);
+P0_x = -imag(vmfApperture.mu1 + 0 * vmfApperture.c)/(2*pi);
+P0_y = -imag(vmfApperture.mu2 + 0 * vmfApperture.c)/(2*pi);
+P0_z = -imag(vmfApperture.mu3 + 0 * vmfApperture.c)/(2*pi);
 
-x = zeros(3,1,1,1,1,smpNum);
+x = zeros(3,1,smpNum,class(vmfApperture.c));
 isOutsideList = 1:1:smpNum;
 
-n = zeros(1,1,1,1,1,smpNum);
-probType = zeros(1,1,1,1,1,smpNum);
+n = zeros(1,1,smpNum);
+probType = zeros(1,1,smpNum);
 
 % weighted random number
 Var = 1:1:numel(smpPreprocess.alpha);
@@ -40,23 +40,23 @@ Odds = cumsum(Odds./sum(Odds));
 while(~isempty(isOutsideList))
     outsideNum = numel(isOutsideList);
     % sample one of the apertures
-    apertureNum = randi(Naperture,1,1,1,1,1,outsideNum);
+    apertureNum = randi(Naperture,1,outsideNum);
     
     mu_r_n1 = mu_r1(apertureNum); mu_r_n2 = mu_r2(apertureNum); mu_r_n3 = mu_r3(apertureNum);
     P0_n_x = P0_x(apertureNum); P0_n_y = P0_y(apertureNum);  P0_n_z = P0_z(apertureNum);
     
-    mu_r_n1 = reshape(mu_r_n1,1,1,1,1,1,outsideNum);
-    mu_r_n2 = reshape(mu_r_n2,1,1,1,1,1,outsideNum);
-    mu_r_n3 = reshape(mu_r_n3,1,1,1,1,1,outsideNum);
+    mu_r_n1 = reshape(mu_r_n1,1,1,outsideNum);
+    mu_r_n2 = reshape(mu_r_n2,1,1,outsideNum);
+    mu_r_n3 = reshape(mu_r_n3,1,1,outsideNum);
     
-    P0_n_x = reshape(P0_n_x,1,1,1,1,1,outsideNum);
-    P0_n_y = reshape(P0_n_y,1,1,1,1,1,outsideNum);
-    P0_n_z = reshape(P0_n_z,1,1,1,1,1,outsideNum);
+    P0_n_x = reshape(P0_n_x,1,1,outsideNum);
+    P0_n_y = reshape(P0_n_y,1,1,outsideNum);
+    P0_n_z = reshape(P0_n_z,1,1,outsideNum);
     
-    mixtureNum = zeros(1,1,1,1,1,outsideNum);
-    Pz = zeros(1,1,1,1,1,outsideNum);
-    r = zeros(1,1,1,1,1,outsideNum);
-    probTypeVec = zeros(1,1,1,1,1,outsideNum);
+    mixtureNum = zeros(1,1,outsideNum);
+    Pz = zeros(1,1,outsideNum);
+    r = zeros(1,1,outsideNum);
+    probTypeVec = zeros(1,1,outsideNum);
     
     for iter = 1:1:outsideNum
         mixtureNum(iter) = Var(find(Odds>=rand,1,'first'));
@@ -86,17 +86,17 @@ while(~isempty(isOutsideList))
             probTypeVec(iter) = 2;
         end
         
-        xy = randn([1,2,1,1,1,1]) .* (smpPreprocess.w0(mixtureNum(iter),apertureNum(iter),Pz(iter)));
-        r(iter) = sqrt(xy(1,1,1,1,1,:).^2 + xy(1,2,1,1,1,:).^2);
+        xy = randn([1,2,1]) .* (smpPreprocess.w0(mixtureNum(iter),apertureNum(iter),Pz(iter)));
+        r(iter) = sqrt(xy(1,1,:).^2 + xy(1,2,:).^2);
     end
     
-    randDirection = randn(1,3,1,1,1,outsideNum);
+    randDirection = randn(1,3,outsideNum);
     pDir = cross(randDirection,cat(2,mu_r_n1,mu_r_n2,mu_r_n3),2);
     pDir = pDir ./ sqrt(sum(pDir.^2,2));
     
-    Px = P0_n_x + Pz .* mu_r_n1 + pDir(1,1,1,1,1,:) .* r;
-    Py = P0_n_y + Pz .* mu_r_n2 + pDir(1,2,1,1,1,:) .* r;
-    Pz = P0_n_z + Pz .* mu_r_n3 + pDir(1,3,1,1,1,:) .* r;
+    Px = P0_n_x + Pz .* mu_r_n1 + pDir(1,1,:) .* r;
+    Py = P0_n_y + Pz .* mu_r_n2 + pDir(1,2,:) .* r;
+    Pz = P0_n_z + Pz .* mu_r_n3 + pDir(1,3,:) .* r;
     
 %     Px = P0_n_x + pDir(1,1,1,1,1,:) .* r;
 %     Py = P0_n_y + pDir(1,2,1,1,1,:) .* r;
@@ -110,15 +110,15 @@ while(~isempty(isOutsideList))
     updateList = isOutsideList(isInsideCurrent);
     isOutsideList = isOutsideList(~isInsideCurrent);
     
-    x(1,1,1,1,1,updateList) = Px(isInsideCurrent);
-    x(2,1,1,1,1,updateList) = Py(isInsideCurrent);
-    x(3,1,1,1,1,updateList) = Pz(isInsideCurrent);
-    n(1,1,1,1,1,updateList) = apertureNum(isInsideCurrent);
-    probType(1,1,1,1,1,updateList) = probTypeVec(isInsideCurrent);
+    x(1,1,updateList) = Px(isInsideCurrent);
+    x(2,1,updateList) = Py(isInsideCurrent);
+    x(3,1,updateList) = Pz(isInsideCurrent);
+    n(1,1,updateList) = apertureNum(isInsideCurrent);
+    probType(1,1,updateList) = probTypeVec(isInsideCurrent);
     
 end
 
-projected_z = smpPreprocess.project(x(1,1,1,1,1,:),x(2,1,1,1,1,:),x(3,1,1,1,1,:));
+projected_z = smpPreprocess.project(x(1,1,:),x(2,1,:),x(3,1,:));
 % prob_z = smpPreprocess.eval_pdf(projected_z);
 
 prob_z_att = smpPreprocess.eval_pdf_att(projected_z);
@@ -130,9 +130,9 @@ projected_vec_y = P0_y + projected_z .* mu_r2;
 projected_vec_z = P0_z + projected_z .* mu_r3;
 
 D = sqrt( ...
-    (x(1,1,1,1,1,:) - projected_vec_x).^2 + ...
-    (x(2,1,1,1,1,:) - projected_vec_y).^2 + ...
-    (x(3,1,1,1,1,:) - projected_vec_z).^2);
+    (x(1,1,:) - projected_vec_x).^2 + ...
+    (x(2,1,:) - projected_vec_y).^2 + ...
+    (x(3,1,:) - projected_vec_z).^2);
 
 w0_all = smpPreprocess.w0_all(projected_z);
 
@@ -141,6 +141,6 @@ prob_xy = (1 ./ w0_all.^2) .* exp(-D.^2 ./ (2 .* w0_all.^2)) ./ (2*pi);
 
 px_full = smpPreprocess.alpha .* prob_z .* prob_xy;
 
-px = sum(mean(reshape(px_full,numel(smpPreprocess.alpha),[],1,1,1,smpNum),2),1);
+px = sum(mean(mean(reshape(px_full,size(px_full,1),size(px_full,2),size(px_full,3),[]),2),4),1);
 
 end

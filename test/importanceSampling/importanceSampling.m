@@ -1,13 +1,10 @@
 clear
 rng('shuffle')
-
-run('configFile');
-Nl = numel(config.focalPointsL.base);
-Nv = numel(config.focalPointsV.base);
-numOfIterations = config.iterationsRender * config.multiplePaths;
     
 %% no importance sampling, g = 0.5
 run('configFile');
+numOfIterations = config.iterationsRender * config.multiplePaths;
+
 config.g = 0.5;
 config.sampleFlag = 11;
 config = preprocessConfig(config);
@@ -17,7 +14,7 @@ C = run_rendering(config);
 t = toc
 
 figure
-imagesc(reshape(abs(C),[Nv,Nv*Nl]))
+imagesc(reshape(abs(C),size(C,1),[]))
 colorbar
 
 title('no IS, g = 0.5')
@@ -36,7 +33,7 @@ C = run_rendering(config);
 t = toc
 
 figure
-imagesc(reshape(abs(C),[Nv,Nv*Nl]))
+imagesc(reshape(abs(C),size(C,1),[]))
 colorbar
 
 title('position IS, g = 0.5')
@@ -54,7 +51,7 @@ C = run_rendering(config);
 t = toc
 
 figure
-imagesc(reshape(abs(C),[Nv,Nv*Nl]))
+imagesc(reshape(abs(C),size(C,1),[]))
 colorbar
 
 title('IS, g = 0.5')
@@ -72,7 +69,7 @@ C = run_rendering(config);
 t = toc
 
 figure
-imagesc(reshape(abs(C),[Nv,Nv*Nl]))
+imagesc(reshape(abs(C),size(C,1),[]))
 colorbar
 
 title('no IS, g = 0.9')
@@ -91,7 +88,7 @@ C = run_rendering(config);
 t = toc
 
 figure
-imagesc(reshape(abs(C),[Nv,Nv*Nl]))
+imagesc(reshape(abs(C),size(C,1),[]))
 colorbar
 
 title('position IS, g = 0.9')
@@ -109,7 +106,7 @@ C = run_rendering(config);
 t = toc
 
 figure
-imagesc(reshape(abs(C),[Nv,Nv*Nl]))
+imagesc(reshape(abs(C),size(C,1),[]))
 colorbar
 
 title('IS, g = 0.9')

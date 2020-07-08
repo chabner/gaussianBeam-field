@@ -2,7 +2,7 @@ clear
 
 run('isConfig');
 config = preprocessConfig(config);
-smpNum = 1e5;
+smpNum = 1e4;
 
 tic
 [x,~,~,n] = smpVmfBeamSum(config.apertureVmf_l,config.smpPreprocess,config.box_min,config.box_max,smpNum);

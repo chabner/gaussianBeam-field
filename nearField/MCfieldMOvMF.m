@@ -14,80 +14,210 @@ if(outxpos)
 end
 
 dim = size(box_min,1);
+correlationFlag = (size(apertureVmf_l.mu1,2) == 2);
 
-u_size = max(apertureVmf_l.dim,apertureVmf_v.dim);
-u_size = u_size(2:end);
-u_size(end+1) = pathsNum;
+%% Calculate dims
+MAX_DIM = 32;
 
-u_output_size = max(apertureVmf_l.dim,apertureVmf_v.dim);
-u_output_size = u_output_size(2:4);
+conv_maxDim = max( ...
+    [ndims(apertureVmf_l.mu1) , ndims(apertureVmf_l.mu2) , ndims(apertureVmf_l.mu3) , ...
+     ndims(apertureVmf_v.dir1), ndims(apertureVmf_v.dir2), ndims(apertureVmf_v.dir3)]);
+ 
+% convolution dims
+conv_mu1_size = size(apertureVmf_l.mu1); conv_mu1_size(end+1:conv_maxDim) = 1;
+conv_mu2_size = size(apertureVmf_l.mu2); conv_mu2_size(end+1:conv_maxDim) = 1;
+conv_mu3_size = size(apertureVmf_l.mu3); conv_mu3_size(end+1:conv_maxDim) = 1;
+conv_c_size   = size(apertureVmf_l.c)  ; conv_c_size(end+1:conv_maxDim)   = 1;
 
-dirl = apertureVmf_l.dir;
-dirv = apertureVmf_v.dir;
+conv_th_mu1_size = conv_mu1_size; conv_th_mu1_size(3) = pathsNum;
+conv_th_mu2_size = conv_mu2_size; conv_th_mu2_size(3) = pathsNum;
+conv_th_mu3_size = conv_mu3_size; conv_th_mu3_size(3) = pathsNum;
+conv_th_c_size   = conv_c_size  ; conv_th_c_size(3)   = pathsNum;
 
-correlationFlag = (u_size(4) == 2);
-if(correlationFlag) 
-    u_size(4) = 1;
-end
+conv_vdir1_size = size(apertureVmf_v.dir1); conv_vdir1_size(end+1:conv_maxDim) = 1;
+conv_vdir2_size = size(apertureVmf_v.dir2); conv_vdir2_size(end+1:conv_maxDim) = 1;
+conv_vdir3_size = size(apertureVmf_v.dir3); conv_vdir3_size(end+1:conv_maxDim) = 1;
+
+conv_ldir1_size = size(apertureVmf_l.dir1); conv_ldir1_size(end+1:conv_maxDim) = 1;
+conv_ldir2_size = size(apertureVmf_l.dir2); conv_ldir2_size(end+1:conv_maxDim) = 1;
+conv_ldir3_size = size(apertureVmf_l.dir3); conv_ldir3_size(end+1:conv_maxDim) = 1;
+
+convDim = max([ ...
+    conv_mu1_size   ; conv_mu2_size   ; conv_mu3_size    ; ...
+    conv_vdir1_size ; conv_vdir2_size ; conv_vdir3_size]);
+convDim(3) = pathsNum;
+convDim(1) = numel(movmf.alpha);
+
+convDimProd = zeros(11,MAX_DIM);
+convDimProd(1 ,1:numel(conv_mu1_size))    = cumprod(conv_mu1_size)   ;
+convDimProd(2 ,1:numel(conv_mu2_size))    = cumprod(conv_mu2_size)   ;
+convDimProd(3 ,1:numel(conv_mu3_size))    = cumprod(conv_mu3_size)   ;
+convDimProd(4 ,1:numel(conv_c_size))      = cumprod(conv_c_size)     ;
+convDimProd(5 ,1:numel(conv_vdir1_size))  = cumprod(conv_vdir1_size) ;
+convDimProd(6 ,1:numel(conv_vdir2_size))  = cumprod(conv_vdir2_size) ;
+convDimProd(7 ,1:numel(conv_vdir3_size))  = cumprod(conv_vdir3_size) ;
+convDimProd(8 ,1:numel(conv_th_mu1_size)) = cumprod(conv_th_mu1_size);
+convDimProd(9 ,1:numel(conv_th_mu2_size)) = cumprod(conv_th_mu2_size);
+convDimProd(10,1:numel(conv_th_mu3_size)) = cumprod(conv_th_mu3_size);
+convDimProd(11,1:numel(conv_th_c_size))   = cumprod(conv_th_c_size)  ;
+convDimProd(12,1:numel(conv_ldir1_size))  = cumprod(conv_ldir1_size) ;
+convDimProd(13,1:numel(conv_ldir2_size))  = cumprod(conv_ldir2_size) ;
+convDimProd(14,1:numel(conv_ldir3_size))  = cumprod(conv_ldir3_size) ;
+
+zerosIdx = ([ones(14,1),diff(convDimProd,[],2)] ~= 0);
+
+convDimProd = circshift(convDimProd,1,2);
+convDimProd = zerosIdx .* convDimProd;
+
+% scattering dims
+scatt_maxDim = max( ...
+    [ndims(apertureVmf_v.mu1) , ndims(apertureVmf_v.mu2) , ndims(apertureVmf_v.mu3) , ...
+     numel(convDim)]);
+ 
+scatt_l_size = convDim; scatt_l_size(end+1:scatt_maxDim) = 1;
+
+scatt_mu1_size = size(apertureVmf_v.mu1); scatt_mu1_size(end+1:scatt_maxDim) = 1;
+scatt_mu2_size = size(apertureVmf_v.mu2); scatt_mu2_size(end+1:scatt_maxDim) = 1;
+scatt_mu3_size = size(apertureVmf_v.mu3); scatt_mu3_size(end+1:scatt_maxDim) = 1;
+scatt_c_size   = size(apertureVmf_v.c)  ; scatt_c_size(end+1:scatt_maxDim)   = 1;
+
+scatt_vdir1_size = size(apertureVmf_v.dir1); scatt_vdir1_size(end+1:scatt_maxDim) = 1;
+scatt_vdir2_size = size(apertureVmf_v.dir2); scatt_vdir2_size(end+1:scatt_maxDim) = 1;
+scatt_vdir3_size = size(apertureVmf_v.dir3); scatt_vdir3_size(end+1:scatt_maxDim) = 1;
+
+u_size = max([ ...
+    scatt_l_size
+    scatt_mu1_size   ; scatt_mu2_size   ; scatt_mu3_size    ; ...
+    scatt_vdir1_size ; scatt_vdir2_size ; scatt_vdir3_size]);
+
+scattThreadsDims = u_size(3:end);
+u_size = u_size(4:end);
+
+scattDimProd = zeros(8,MAX_DIM);
+scattDimProd(1,1:numel(scatt_l_size))     = cumprod(scatt_l_size)    ;
+scattDimProd(2,1:numel(scatt_mu1_size))   = cumprod(scatt_mu1_size)  ;
+scattDimProd(3,1:numel(scatt_mu2_size))   = cumprod(scatt_mu2_size)  ;
+scattDimProd(4,1:numel(scatt_mu3_size))   = cumprod(scatt_mu3_size)  ;
+scattDimProd(5,1:numel(scatt_c_size))     = cumprod(scatt_c_size)    ;
+scattDimProd(6,1:numel(scatt_vdir1_size)) = cumprod(scatt_vdir1_size);
+scattDimProd(7,1:numel(scatt_vdir2_size)) = cumprod(scatt_vdir2_size);
+scattDimProd(8,1:numel(scatt_vdir3_size)) = cumprod(scatt_vdir3_size);
+
+zerosIdx = ([ones(8,1),diff(scattDimProd,[],2)] ~= 0);
+scattDimProd = circshift(scattDimProd,1,2);
+scattDimProd = zerosIdx .* scattDimProd;
+scattDimProd = circshift(scattDimProd,-2,2);
+
+% multiple scattering dims
+mscatt_l_size = [1,scatt_l_size(2:end)];
+
+mscattDimProd = zeros(8,MAX_DIM);
+mscattDimProd(1,1:numel(mscatt_l_size))       = cumprod(mscatt_l_size)      ;
+mscattDimProd(2,1:numel(scatt_mu1_size))      = cumprod(scatt_mu1_size)     ;
+mscattDimProd(3,1:numel(scatt_mu2_size))      = cumprod(scatt_mu2_size)     ;
+mscattDimProd(4,1:numel(scatt_mu3_size))      = cumprod(scatt_mu3_size)     ;
+mscattDimProd(5,1:numel(scatt_c_size))        = cumprod(scatt_c_size)       ;
+mscattDimProd(6,1:numel(scatt_vdir1_size))    = cumprod(scatt_vdir1_size)   ;
+mscattDimProd(7,1:numel(scatt_vdir2_size))    = cumprod(scatt_vdir2_size)   ;
+mscattDimProd(8,1:numel(scatt_vdir3_size))    = cumprod(scatt_vdir3_size)   ;
+
+zerosIdx = ([ones(8,1),diff(mscattDimProd,[],2)] ~= 0);
+mscattDimProd = circshift(mscattDimProd,1,2);
+mscattDimProd = zerosIdx .* mscattDimProd;
+mscattDimProd = circshift(mscattDimProd,-2,2);
+
+% el dims
+elDim = convDim; elDim(1) = 1;
+
+elDimProd = zeros(4,MAX_DIM);
+elDimProd(1,1:numel(conv_th_mu1_size)) = cumprod(conv_th_mu1_size);
+elDimProd(2,1:numel(conv_th_mu2_size)) = cumprod(conv_th_mu2_size);
+elDimProd(3,1:numel(conv_th_mu3_size)) = cumprod(conv_th_mu3_size);
+elDimProd(4,1:numel(conv_th_c_size))   = cumprod(conv_th_c_size)  ;
+
+zerosIdx = ([ones(4,1),diff(elDimProd,[],2)] ~= 0);
+
+elDimProd = circshift(elDimProd,1,2);
+elDimProd = zerosIdx .* elDimProd;
 
 
 %% Gpu function
 if(gpuEnable)
-    lDim = apertureVmf_l.dim;
-    lDim(1) = movmf.dim(1);
-    lDim(apertureVmf_v.dirDim) = apertureVmf_v.dim(apertureVmf_v.dirDim);
-
-    if(correlationFlag)
-        gpuFunc.integrateMult = parallel.gpu.CUDAKernel('integrateMult_correlation.ptx','integrateMult_correlation.cu');
-    else
-        gpuFunc.integrateMult = parallel.gpu.CUDAKernel('integrateMult_render.ptx','integrateMult_render.cu');
-    end
+    gpuFunc.movmfConv = parallel.gpu.CUDAKernel('nf_core.ptx','nf_core.cu','movmfConv');
+    gpuFunc.movmfConv.GridSize = [ceil(prod(convDim)/gpuFunc.movmfConv.MaxThreadsPerBlock) 1 1];
+    gpuFunc.movmfConv.ThreadBlockSize = [gpuFunc.movmfConv.MaxThreadsPerBlock 1 1];
     
-    gpuFunc.integrateMult.GridSize = [ceil(prod(u_size)/gpuFunc.integrateMult.MaxThreadsPerBlock) 1 1];
-    gpuFunc.integrateMult.ThreadBlockSize = [gpuFunc.integrateMult.MaxThreadsPerBlock 1 1];
-
-    setConstantMemory(gpuFunc.integrateMult,'box_min',box_min);
-    setConstantMemory(gpuFunc.integrateMult,'box_max',box_max);
-    setConstantMemory(gpuFunc.integrateMult,'sigt',sigt/2);
-
-    setConstantMemory(gpuFunc.integrateMult,'dirDimNum',int32(apertureVmf_v.dirDim));
-    setConstantMemory(gpuFunc.integrateMult,'uDimProd',int32(cumprod(u_size)));
-    setConstantMemory(gpuFunc.integrateMult,'lDim',int32(lDim));
-    setConstantMemory(gpuFunc.integrateMult,'vDim',int32(apertureVmf_v.dim));
-    setConstantMemory(gpuFunc.integrateMult,'lMixtureAlpha',movmf.alpha);
-
-    if(correlationFlag)
-        gpuFunc.MSintegrateMult = parallel.gpu.CUDAKernel('MSintegrateMult_correlation.ptx','MSintegrateMult_correlation.cu');
-    else
-        gpuFunc.MSintegrateMult = parallel.gpu.CUDAKernel('MSintegrateMult_render.ptx','MSintegrateMult_render.cu');
-    end
+    setConstantMemory(gpuFunc.movmfConv,'mixtureMu',movmf.mu3);
+    setConstantMemory(gpuFunc.movmfConv,'mixtureC',movmf.c);
+    setConstantMemory(gpuFunc.movmfConv,'conv_dimProd',uint32(cumprod(convDim)));
+    setConstantMemory(gpuFunc.movmfConv,'conv_maxDim',uint32(conv_maxDim));
+    setConstantMemory(gpuFunc.movmfConv,'conv_inDimProd',uint32(convDimProd.'));
+    setConstantMemory(gpuFunc.movmfConv,'box_min',box_min);
+    setConstantMemory(gpuFunc.movmfConv,'box_max',box_max);
+    setConstantMemory(gpuFunc.movmfConv,'sigt',sigt/2    );
+   
+    gpuFunc.singleScattering = parallel.gpu.CUDAKernel('nf_core.ptx','nf_core.cu','singleScattering');
+    gpuFunc.singleScattering.GridSize = [ceil(prod(scattThreadsDims)/gpuFunc.singleScattering.MaxThreadsPerBlock) 1 1];
+    gpuFunc.singleScattering.ThreadBlockSize = [gpuFunc.singleScattering.MaxThreadsPerBlock 1 1];
     
-    gpuFunc.MSintegrateMult.GridSize = [ceil(prod(u_size)/gpuFunc.MSintegrateMult.MaxThreadsPerBlock) 1 1];
-    gpuFunc.MSintegrateMult.ThreadBlockSize = [gpuFunc.MSintegrateMult.MaxThreadsPerBlock 1 1];
-
-    setConstantMemory(gpuFunc.MSintegrateMult,'box_min',box_min);
-    setConstantMemory(gpuFunc.MSintegrateMult,'box_max',box_max);
-    setConstantMemory(gpuFunc.MSintegrateMult,'sigt',sigt/2);
-
-    setConstantMemory(gpuFunc.MSintegrateMult,'dirDimNum',int32(apertureVmf_v.dirDim));
-    setConstantMemory(gpuFunc.MSintegrateMult,'uDimProd',int32(cumprod(u_size)));
-    setConstantMemory(gpuFunc.MSintegrateMult,'lDim',int32(apertureVmf_l.dim));
-    setConstantMemory(gpuFunc.MSintegrateMult,'vDim',int32(apertureVmf_v.dim));
-    setConstantMemory(gpuFunc.MSintegrateMult,'lMixtureAlpha',movmf.alpha);
-    setConstantMemory(gpuFunc.MSintegrateMult,'mixturesNum',int32(movmf.dim(1)));
+    setConstantMemory(gpuFunc.singleScattering,'mixtureAlpha',movmf.alpha);
+    setConstantMemory(gpuFunc.singleScattering,'mixturesNum',uint32(numel(movmf.alpha)));
+    setConstantMemory(gpuFunc.singleScattering,'scatt_dimProd',uint32(cumprod(scattThreadsDims)));
+    setConstantMemory(gpuFunc.singleScattering,'scatt_maxDim',uint32(scatt_maxDim - 2));
+    setConstantMemory(gpuFunc.singleScattering,'scatt_inDimProd',uint32(scattDimProd.'));
+    setConstantMemory(gpuFunc.singleScattering,'corrParamNum',uint32(scatt_c_size(2)));
     
-    movmf_gpu = movmfToGpu(movmf);
-    apertureVmf_v_gpu = movmfToGpu(apertureVmf_v);
-    dirv_gpu = gpuArray(dirv);
-
+    gpuFunc.multipleScattering = parallel.gpu.CUDAKernel('nf_core.ptx','nf_core.cu','multipleScattering');
+    gpuFunc.multipleScattering.GridSize = [ceil(prod(scattThreadsDims)/gpuFunc.multipleScattering.MaxThreadsPerBlock) 1 1];
+    gpuFunc.multipleScattering.ThreadBlockSize = [gpuFunc.multipleScattering.MaxThreadsPerBlock 1 1];
+    
+    setConstantMemory(gpuFunc.multipleScattering,'mscatt_inDimProd',uint32(mscattDimProd.'));
+    
+    gpuFunc.integrateEl = parallel.gpu.CUDAKernel('nf_core.ptx','nf_core.cu','integrateEl');
+    gpuFunc.integrateEl.GridSize = [ceil(prod(elDim)/gpuFunc.integrateEl.MaxThreadsPerBlock) 1 1];
+    gpuFunc.integrateEl.ThreadBlockSize = [gpuFunc.integrateEl.MaxThreadsPerBlock 1 1];
+    
+    setConstantMemory(gpuFunc.integrateEl,'el_dimProd',uint32(cumprod(elDim)));
+    setConstantMemory(gpuFunc.integrateEl,'el_inDimProd',uint32(elDimProd.'));
+    
+    conv_vmf_l0.mu1 = gpuArray(complex(zeros(convDim)));
+    conv_vmf_l0.mu2 = gpuArray(complex(zeros(convDim)));
+    conv_vmf_l0.mu3 = gpuArray(complex(zeros(convDim)));
+    conv_vmf_l0.c = gpuArray(complex(zeros(convDim)));
+    
+    apertureVmf_v.mu1 = gpuArray(complex(apertureVmf_v.mu1));
+    apertureVmf_v.mu2 = gpuArray(complex(apertureVmf_v.mu2));
+    apertureVmf_v.mu3 = gpuArray(complex(apertureVmf_v.mu3));
+    apertureVmf_v.c = gpuArray(complex(apertureVmf_v.c));
+    
+    apertureVmf_v.dir1 = gpuArray(apertureVmf_v.dir1);
+    apertureVmf_v.dir2 = gpuArray(apertureVmf_v.dir2);
+    apertureVmf_v.dir3 = gpuArray(apertureVmf_v.dir3);
+    
+    apertureVmf_l.mu1 = gpuArray(complex(apertureVmf_l.mu1));
+    apertureVmf_l.mu2 = gpuArray(complex(apertureVmf_l.mu2));
+    apertureVmf_l.mu3 = gpuArray(complex(apertureVmf_l.mu3));
+    apertureVmf_l.c = gpuArray(complex(apertureVmf_l.c));
+    
+    apertureVmf_l.dir1 = gpuArray(apertureVmf_l.dir1);
+    apertureVmf_l.dir2 = gpuArray(apertureVmf_l.dir2);
+    apertureVmf_l.dir3 = gpuArray(apertureVmf_l.dir3);
+    
+    throughputVmf_l.mu1 = gpuArray(complex(zeros(conv_th_mu1_size)));
+    throughputVmf_l.mu2 = gpuArray(complex(zeros(conv_th_mu2_size)));
+    throughputVmf_l.mu3 = gpuArray(complex(zeros(conv_th_mu3_size)));
+    throughputVmf_l.c   = gpuArray(complex(zeros(conv_th_c_size)))  ;
+    
+    el_zeros = gpuArray(complex(zeros(elDim)));
+    
 end
 %% Prepare for algorithm
 if(gpuEnable)
-    u = complex(zeros(u_output_size,'gpuArray'));
-    us = complex(zeros(u_output_size,'gpuArray'));
+    u = complex(zeros(u_size,'gpuArray'));    
+    us = complex(zeros(u_size,'gpuArray'));    
 else
-    u = complex(zeros(u_output_size));
-    us = complex(zeros(u_output_size));
+    u = complex(zeros(u_size));
+    us = complex(zeros(u_size));
 end
 
 % Box size
@@ -96,6 +226,14 @@ V=prod(box_w);
 
 % threshold to begin kill particles with low weight
 killThr=0.2;
+
+dirl_zeros = 0 * apertureVmf_l.dir1 + 0 * apertureVmf_l.dir2 + 0 * apertureVmf_l.dir3;
+dirl = cat(1,apertureVmf_l.dir1 + dirl_zeros,apertureVmf_l.dir2 + dirl_zeros,apertureVmf_l.dir3 + dirl_zeros);
+
+% if(~gpuEnable)
+    dirv_zeros = 0 * apertureVmf_v.dir1 + 0 * apertureVmf_v.dir2 + 0 * apertureVmf_v.dir3;
+    dirv = cat(1,apertureVmf_v.dir1 + dirv_zeros,apertureVmf_v.dir2 + dirv_zeros,apertureVmf_v.dir3 + dirv_zeros);
+% end
 
 %% Begin the main loop
 for itr=1:maxItr
@@ -109,8 +247,8 @@ for itr=1:maxItr
     switch mod(smpFlg,10)
         case 1
             % uniform distribution
-            x=rand(dim,1,1,1,1,pathsNum).*(box_w)+box_min;
-            px=ones(1,1,1,1,1,pathsNum);
+            x=rand(dim,1,pathsNum).*(box_w)+box_min;
+            px=ones(1,1,pathsNum);
         case 2
             % exponential distribution
             [x,px] = expSmpX(box_min,box_max,[0;0;1],sigt,pathsNum);
@@ -129,9 +267,20 @@ for itr=1:maxItr
     end
 %     px = max(px,smpFunc(1).pxMin);
     
-    dz = cubeDist(x,box_min,box_max,-dirl);
-    throughputVmf_l = movmfThroughput(apertureVmf_l,x,-1,sigt,dz);
-    conv_vmf_l0 = movmfConv(throughputVmf_l,movmf,dirv,apertureVmf_v.dirDim);
+    if(gpuEnable)           
+        [conv_vmf_l0.mu1,conv_vmf_l0.mu2,conv_vmf_l0.mu3,conv_vmf_l0.c, ...
+            throughputVmf_l.mu1,throughputVmf_l.mu2,throughputVmf_l.mu3,throughputVmf_l.c] = ...
+            feval(gpuFunc.movmfConv,conv_vmf_l0.mu1,conv_vmf_l0.mu2,conv_vmf_l0.mu3,conv_vmf_l0.c,...
+            throughputVmf_l.mu1,throughputVmf_l.mu2,throughputVmf_l.mu3,throughputVmf_l.c, x, ...
+            apertureVmf_l.mu1, apertureVmf_l.mu2, apertureVmf_l.mu3, apertureVmf_l.c, ...
+            apertureVmf_v.dir1,apertureVmf_v.dir2,apertureVmf_v.dir3, ...
+            apertureVmf_l.dir1,apertureVmf_l.dir2,apertureVmf_l.dir3);
+    else
+        dz = cubeDist(x,box_min,box_max,-dirl);
+        throughputVmf_l = movmfThroughput(apertureVmf_l,x,-1,sigt,dz);
+        
+        conv_vmf_l0 = movmfConv(throughputVmf_l,apertureVmf_v,movmf);
+    end
     
     % First scattering direction
     %implement an option to sample w isotropically (add apropriate input flag).
@@ -140,47 +289,62 @@ for itr=1:maxItr
     %sampling probability w0p should be
     switch floor(smpFlg/10)
         case 1
-            w=randn(dim,1,1,1,1,pathsNum); w=w./sqrt(sum(w.^2,1));
-            w0p=1./sqrt(2^(dim-1)*pi);
+            w=randn(dim,1,pathsNum); w=w./sqrt(sum(w.^2,1));
+            w0p=ones(1,1,pathsNum)./sqrt(2^(dim-1)*pi);
         case 3
 %             [w,w0p] = vmfFirstDirection(conv_vmf_l0);
         case 4
-%             n = randi(prod(conv_vmf_l0.dim(2:end)),[1,1,1,1,pathsNum]);
-%             [w,w0p] = vmfFirstDirectionSum_sameBeam(conv_vmf_l0,n);
+            n = randi(prod(conv_vmf_l0.dim(2:end)),[1,1,1,1,1,pathsNum]);
+            [w,w0p] = vmfFirstDirectionSum_sameBeam(conv_vmf_l0,movmf.alpha,n);
         case 5
-            [w,w0p] = vmfFirstDirectionSum_sameBeam(conv_vmf_l0,n);
+            [w,w0p] = vmfFirstDirectionSum_sameBeam(conv_vmf_l0,movmf.alpha,n);
     end
     
-    if(outxpos)
-        pxpwVec(1,:,itr) = px;
-        pxpwVec(2,:,itr) = w0p;
-    end
+%     if(outxpos)
+%         pxpwVec(1,:,itr) = px;
+%         pxpwVec(2,:,itr) = w0p;
+%     end
     
     % for each lighting direction, the viewing direction gets different
     % direction
     
     if(gpuEnable)
 %         randPhase = exp(2*pi*1i*rand(1,1,1,1,1,pathsNum,'gpuArray'));
-        randPhase = gpuArray(exp(2*pi*1i*rand(1,1,1,1,1,pathsNum)));
-        conv_vmf_l0_gpu = movmfToGpu(conv_vmf_l0);
+        randPhase = gpuArray(exp(2*pi*1i*rand(1,1,pathsNum)));
         
-        us = feval(gpuFunc.integrateMult,us,dirv_gpu,gpuArray(x),(2*pi*randPhase./sqrt(px)), ...
-            conv_vmf_l0_gpu.mu1, conv_vmf_l0_gpu.mu2, conv_vmf_l0_gpu.mu3, conv_vmf_l0_gpu.c, ...
-            apertureVmf_v_gpu.mu1, apertureVmf_v_gpu.mu2, apertureVmf_v_gpu.mu3, apertureVmf_v_gpu.c);
+        us = feval(gpuFunc.singleScattering,us,gpuArray(x),(2*pi*randPhase./sqrt(px)), ...
+            conv_vmf_l0.mu1, conv_vmf_l0.mu2, conv_vmf_l0.mu3, conv_vmf_l0.c, ...
+            apertureVmf_v.mu1, apertureVmf_v.mu2, apertureVmf_v.mu3, apertureVmf_v.c,...
+            apertureVmf_v.dir1,apertureVmf_v.dir2,apertureVmf_v.dir3);
     else
-        randPhase = exp(2*pi*1i*rand(1,1,1,1,1,pathsNum));
+        randPhase = exp(2*pi*1i*rand(1,1,pathsNum));
         dz = cubeDist(x,box_min,box_max,dirv);
         throughputVmf_v = movmfThroughput(apertureVmf_v,x,1,sigt,dz);
         movmf_mult = movmfMultiple(conv_vmf_l0,throughputVmf_v,false);
+        movmf_mult.alpha = movmf.alpha;
         [integrateMult] = movmfIntegrate(movmf_mult);
-        us = us + squeeze(integrateMult .* randPhase / sqrt(px));
+        us_res = integrateMult .* randPhase ./ sqrt(px);
+        
+        if(correlationFlag)
+            us = us + squeeze(sum(us_res(1,1,:,:,:,:) .* conj(us_res(1,2,:,:,:,:)),3));
+        else
+            us = us + squeeze(sum(us_res(1,1,:,:,:,:),3));
+        end
     end
+   
     
-    rotatedMovmf_l = movmfRotate(movmf,w);
-    
-    throughputVmf_l_times_movmf = movmfMultiple(throughputVmf_l,rotatedMovmf_l,true);
-    throughputVmf_l_times_movmf.c = throughputVmf_l_times_movmf.c - log(w0p);
-    el = movmfIntegrate(throughputVmf_l_times_movmf);
+    if(gpuEnable)
+        activatedPaths = true(pathsNum,1,'gpuArray');
+        el = feval(gpuFunc.integrateEl,el_zeros,w,w0p, ...
+            throughputVmf_l.mu1, throughputVmf_l.mu2, throughputVmf_l.mu3, throughputVmf_l.c);
+    else
+        activatedPaths = true(pathsNum,1);
+        rotatedMovmf_l = movmfRotate(movmf,w);
+        throughputVmf_l_times_movmf = movmfMultiple(throughputVmf_l,rotatedMovmf_l,true);
+        throughputVmf_l_times_movmf.c = throughputVmf_l_times_movmf.c - log(w0p);
+        throughputVmf_l_times_movmf.alpha = movmf.alpha;
+        el = movmfIntegrate(throughputVmf_l_times_movmf);
+    end
 
     % number of scattering events
     pL=0;
@@ -188,20 +352,17 @@ for itr=1:maxItr
     % intensity loss due to albedo
 %     weight=albedo;
     
-    if(gpuEnable)
-        activatedPaths = true(pathsNum,1,'gpuArray');
-        el_gpu = gpuArray(el);
-    end
+
     
     % begin paths sampling loop
     while pL < maxBounces
 
         pL=pL+1;
         
-        if(outxpos)
-            xVec(:,pL,:,itr) = x;
-            wVec(:,pL,:,itr) = w;
-        end
+%         if(outxpos)
+%             xVec(:,pL,:,itr) = x;
+%             wVec(:,pL,:,itr) = w;
+%         end
 
 
         % calculate the complex volumetric throughput for the last
@@ -209,16 +370,12 @@ for itr=1:maxItr
         if (pL>1)
                 
             if(gpuEnable)
-%                 randPhase = exp(2*pi*1i*rand(1,1,1,1,1,pathsNum,'gpuArray'));
-                randPhase = gpuArray(exp(2*pi*1i*rand(1,1,1,1,1,pathsNum)));
-
-                % rotate the scattering function on direction of ow
-                rotatedMovmf_v = movmfRotate(movmf_gpu,ow);
+                randPhase = gpuArray(exp(2*pi*1i*rand(1,1,pathsNum)));
                 
-                u = feval(gpuFunc.MSintegrateMult,u, el_gpu, dirv, ...
-                    gpuArray(x), (2 * pi * randPhase ./ sqrt(px)), activatedPaths, ...
+                u = feval(gpuFunc.multipleScattering,u, el, ...
+                    x, ow, (2 * pi * randPhase ./ sqrt(px)), activatedPaths, ...
                     apertureVmf_v.mu1, apertureVmf_v.mu2, apertureVmf_v.mu3, apertureVmf_v.c, ...
-                    rotatedMovmf_v.mu1, rotatedMovmf_v.mu2, rotatedMovmf_v.mu3, rotatedMovmf_v.c);
+                    apertureVmf_v.dir1,apertureVmf_v.dir2,apertureVmf_v.dir3);
             else
                 randPhase = exp(2*pi*1i*rand(1,1,1,1,1,pathsNum));
 
@@ -228,23 +385,30 @@ for itr=1:maxItr
                 dz = cubeDist(x,box_min,box_max,dirv);
                 throughputVmf_v = movmfThroughput(apertureVmf_v,x,1,sigt,dz);
                 throughputVmf_v_times_movmf = movmfMultiple(throughputVmf_v,rotatedMovmf_v,true);
+                throughputVmf_v_times_movmf.alpha = movmf.alpha;
                 ev = movmfIntegrate(throughputVmf_v_times_movmf);
-                u_res = squeeze(ev .* el ./ sqrt(px) .* randPhase);
-                u(:,:,:,activatedPaths) = u(:,:,:,activatedPaths) + u_res(:,:,:,activatedPaths);
+                u_res = (ev .* el ./ sqrt(px) .* randPhase);
+                
+                if(correlationFlag)
+                    u = u + squeeze(sum(u_res(1,1,activatedPaths,:,:,:) .* conj(u_res(1,2,activatedPaths,:,:,:)),3));
+                else
+                    u = u + squeeze(sum(u_res(1,1,activatedPaths,:,:,:),3));
+                end
             end
+            
         end
 
        
         % advance to the next scattering event
-        d=-log(-rand(1,1,1,1,1,pathsNum)+1)/(sigt);
+        d=-log(-rand(1,1,pathsNum)+1)/(sigt);
         x = x+d.*w;
 
         % move to the next particle if the next scattering event is outside
         % the box
         outsideIdx = ...
-            x(1,1,1,1,1,:) > box_max(1) | x(1,1,1,1,1,:) < box_min(1) | ...
-            x(2,1,1,1,1,:) > box_max(2) | x(2,1,1,1,1,:) < box_min(2) | ...
-            x(3,1,1,1,1,:) > box_max(3) | x(3,1,1,1,1,:) < box_min(3) ;
+            x(1,1,:) > box_max(1) | x(1,1,:) < box_min(1) | ...
+            x(2,1,:) > box_max(2) | x(2,1,:) < box_min(2) | ...
+            x(3,1,:) > box_max(3) | x(3,1,:) < box_min(3) ;
         
         activatedPaths(outsideIdx) = false;
         

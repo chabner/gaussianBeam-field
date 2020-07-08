@@ -15,20 +15,20 @@ end
 
 
 if(conjMultiple)
-    movmfMult.alpha = movmf1.alpha .* conj(movmf2.alpha);
+%     movmfMult.alpha = movmf1.alpha .* conj(movmf2.alpha);
     movmfMult.c     = movmf1.c      + conj(movmf2.c)    ;
     movmfMult.mu1   = movmf1.mu1    + conj(movmf2.mu1)  ;
     movmfMult.mu2   = movmf1.mu2    + conj(movmf2.mu2)  ;
     movmfMult.mu3   = movmf1.mu3    + conj(movmf2.mu3)  ;
 else
-    movmfMult.alpha = movmf1.alpha .* movmf2.alpha      ;
-    movmfMult.c     = movmf1.c      + movmf2.c          ;
-    movmfMult.mu1   = movmf1.mu1    + movmf2.mu1        ;
-    movmfMult.mu2   = movmf1.mu2    + movmf2.mu2        ;
-    movmfMult.mu3   = movmf1.mu3    + movmf2.mu3        ;
+%     movmfMult.alpha = movmf1.alpha .* movmf2.alpha      ;
+    movmfMult.c     = gather(movmf1.c)      + gather(movmf2.c)          ;
+    movmfMult.mu1   = gather(movmf1.mu1)    + gather(movmf2.mu1)        ;
+    movmfMult.mu2   = gather(movmf1.mu2)    + gather(movmf2.mu2)        ;
+    movmfMult.mu3   = gather(movmf1.mu3)    + gather(movmf2.mu3)        ;
 end
 
-movmfMult.dim = max(movmf1.dim,movmf2.dim);
+% movmfMult.dim = max(movmf1.dim,movmf2.dim);
 % movmfMult.dim = size(movmfMult.alpha);
 	
 end

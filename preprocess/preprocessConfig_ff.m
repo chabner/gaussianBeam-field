@@ -15,9 +15,180 @@ if(isfield(config,'boxShift'))
     config.box_max = config.box_max + config.boxShift;
 end
 
-if(isfield(config,'multiplePaths'))
-    config.iterationsRender = config.iterationsRender * config.multiplePaths;
+if(~isfield(config,'multiplePaths'))
+    config.multiplePaths = 1;
 end
+
+ff_correlationActive = isfield(config.ff,'v.x_2');
+refocus_active = isfield(config,'nf');
+
+if(refocus_active)
+    refocus_correlationActive = isfield(config.nf.focalPointsL,'x_2');
+    config.nf.correlationActive = refocus_correlationActive;
+else
+    refocus_correlationActive = false;
+end
+
+
+if(ff_correlationActive && refocus_active)
+    error('refocus only on field')
+end
+
+if(config.multiplePaths ~= 1 && refocus_active)
+    error('refocus only with a single path')
+end
+
+if(~isfield(config.ff,'dir_v'))
+    config.noAttDir = true;
+end
+
+%% Parameters
+% ff parameters
+paramsList = fieldnames(config.ff.parameters);
+currDim = 4;
+
+ff_dims = numel(paramsList);
+
+for paramNum = 1:1:ff_dims
+    param = config.ff.parameters.(paramsList{paramNum});
+    param = param(:);
+    permuteVec = 1:1:currDim;
+    permuteVec(1) = currDim; permuteVec(end) = 1;
+    param = permute(param,permuteVec);
+    
+    config.ff.parameters.(paramsList{paramNum}) = param;
+    currDim = currDim + 1;
+end
+
+% refocus parameters
+if(refocus_active)
+    paramsList = fieldnames(config.nf.parameters);
+    nf_dims = numel(paramsList);
+
+    for paramNum = 1:1:numel(paramsList)
+        param = config.nf.parameters.(paramsList{paramNum});
+        param = param(:);
+        permuteVec = 1:1:currDim;
+        permuteVec(1) = currDim; permuteVec(end) = 1;
+        param = permute(param,permuteVec);
+
+        config.nf.parameters.(paramsList{paramNum}) = param;
+        currDim = currDim + 1;
+    end
+    
+    config.nf.ff_dims = ff_dims;
+    config.nf.nf_dims = nf_dims;
+end
+
+%% Evaluate
+config.v.x = eval(['config.ff.v.x',parseFunc(config.ff.v.x,'config.ff.parameters.')]);
+config.v.y = eval(['config.ff.v.y',parseFunc(config.ff.v.y,'config.ff.parameters.')]);
+config.v.z = eval(['config.ff.v.z',parseFunc(config.ff.v.z,'config.ff.parameters.')]);
+
+config.l.x = eval(['config.ff.l.x',parseFunc(config.ff.l.x,'config.ff.parameters.')]);
+config.l.y = eval(['config.ff.l.y',parseFunc(config.ff.l.y,'config.ff.parameters.')]);
+config.l.z = eval(['config.ff.l.z',parseFunc(config.ff.l.z,'config.ff.parameters.')]);
+
+if(~config.noAttDir)
+    config.dir_v.x = eval(['config.ff.dir_v.x',parseFunc(config.ff.dir_v.x,'config.ff.parameters.')]);
+    config.dir_v.y = eval(['config.ff.dir_v.y',parseFunc(config.ff.dir_v.y,'config.ff.parameters.')]);
+    config.dir_v.z = eval(['config.ff.dir_v.z',parseFunc(config.ff.dir_v.z,'config.ff.parameters.')]);
+
+    config.dir_l.x = eval(['config.ff.dir_l.x',parseFunc(config.ff.dir_l.x,'config.ff.parameters.')]);
+    config.dir_l.y = eval(['config.ff.dir_l.y',parseFunc(config.ff.dir_l.y,'config.ff.parameters.')]);
+    config.dir_l.z = eval(['config.ff.dir_l.z',parseFunc(config.ff.dir_l.z,'config.ff.parameters.')]);
+end
+
+if(ff_correlationActive)
+    config.v.x_2 = eval(['config.ff.v.x_2',parseFunc(config.ff.v.x_2,'config.ff.parameters.')]);
+    config.v.y_2 = eval(['config.ff.v.y_2',parseFunc(config.ff.v.y_2,'config.ff.parameters.')]);
+    config.v.z_2 = eval(['config.ff.v.z_2',parseFunc(config.ff.v.z_2,'config.ff.parameters.')]);
+
+    config.l.x_2 = eval(['config.ff.l.x_2',parseFunc(config.ff.l.x_2,'config.ff.parameters.')]);
+    config.l.y_2 = eval(['config.ff.l.y_2',parseFunc(config.ff.l.y_2,'config.ff.parameters.')]);
+    config.l.z_2 = eval(['config.ff.l.z_2',parseFunc(config.ff.l.z_2,'config.ff.parameters.')]);
+
+    if(~config.noAttDir)
+        config.dir_v.x_2 = eval(['config.ff.dir_v.x_2',parseFunc(config.ff.dir_v.x_2,'config.ff.parameters.')]);
+        config.dir_v.y_2 = eval(['config.ff.dir_v.y_2',parseFunc(config.ff.dir_v.y_2,'config.ff.parameters.')]);
+        config.dir_v.z_2 = eval(['config.ff.dir_v.z_2',parseFunc(config.ff.dir_v.z_2,'config.ff.parameters.')]);
+
+        config.dir_l.x_2 = eval(['config.ff.dir_l.x_2',parseFunc(config.ff.dir_l.x_2,'config.ff.parameters.')]);
+        config.dir_l.y_2 = eval(['config.ff.dir_l.y_2',parseFunc(config.ff.dir_l.y_2,'config.ff.parameters.')]);
+        config.dir_l.z_2 = eval(['config.ff.dir_l.z_2',parseFunc(config.ff.dir_l.z_2,'config.ff.parameters.')]);
+    end
+    
+    config.v.x = cat(2,config.v.x,config.v.x_2);
+    config.v.y = cat(2,config.v.y,config.v.y_2);
+    config.v.z = cat(2,config.v.z,config.v.z_2);
+    
+    config.l.x = cat(2,config.l.x,config.l.x_2);
+    config.l.y = cat(2,config.l.y,config.l.y_2);
+    config.l.z = cat(2,config.l.z,config.l.z_2);
+    
+    if(~config.noAttDir)
+        config.dir_v.x = cat(2,config.dir_v.x,config.dir_v.x_2);
+        config.dir_v.y = cat(2,config.dir_v.y,config.dir_v.y_2);
+        config.dir_v.z = cat(2,config.dir_v.z,config.dir_v.z_2);
+
+        config.dir_l.x = cat(2,config.dir_l.x,config.dir_l.x_2);
+        config.dir_l.y = cat(2,config.dir_l.y,config.dir_l.y_2);
+        config.dir_l.z = cat(2,config.dir_l.z,config.dir_l.z_2);
+    end
+end
+
+if(refocus_active)
+    config.nf.focalPointsL.eval.x = eval(['config.nf.focalPointsL.x',parseFunc(config.nf.focalPointsL.x)]);
+    config.nf.focalPointsL.eval.y = eval(['config.nf.focalPointsL.y',parseFunc(config.nf.focalPointsL.y)]);
+    config.nf.focalPointsL.eval.z = eval(['config.nf.focalPointsL.z',parseFunc(config.nf.focalPointsL.z)]);
+
+    config.nf.focalPointsV.eval.x = eval(['config.nf.focalPointsV.x',parseFunc(config.nf.focalPointsV.x)]);
+    config.nf.focalPointsV.eval.y = eval(['config.nf.focalPointsV.y',parseFunc(config.nf.focalPointsV.y)]);
+    config.nf.focalPointsV.eval.z = eval(['config.nf.focalPointsV.z',parseFunc(config.nf.focalPointsV.z)]);
+
+    config.nf.focalDirectionsL.eval.x = eval(['config.nf.focalDirectionsL.x',parseFunc(config.nf.focalDirectionsL.x)]);
+    config.nf.focalDirectionsL.eval.y = eval(['config.nf.focalDirectionsL.y',parseFunc(config.nf.focalDirectionsL.y)]);
+    config.nf.focalDirectionsL.eval.z = eval(['config.nf.focalDirectionsL.z',parseFunc(config.nf.focalDirectionsL.z)]);
+
+    config.nf.focalDirectionsV.eval.x = eval(['config.nf.focalDirectionsV.x',parseFunc(config.nf.focalDirectionsV.x)]);
+    config.nf.focalDirectionsV.eval.y = eval(['config.nf.focalDirectionsV.y',parseFunc(config.nf.focalDirectionsV.y)]);
+    config.nf.focalDirectionsV.eval.z = eval(['config.nf.focalDirectionsV.z',parseFunc(config.nf.focalDirectionsV.z)]);
+end
+
+if(refocus_correlationActive)
+    config.nf.focalPointsL.eval.x_2 = eval(['config.nf.focalPointsL.x_2',parseFunc(config.nf.focalPointsL.x_2)]);
+    config.nf.focalPointsL.eval.y_2 = eval(['config.nf.focalPointsL.y_2',parseFunc(config.nf.focalPointsL.y_2)]);
+    config.nf.focalPointsL.eval.z_2 = eval(['config.nf.focalPointsL.z_2',parseFunc(config.nf.focalPointsL.z_2)]);
+
+    config.nf.focalPointsV.eval.x_2 = eval(['config.nf.focalPointsV.x_2',parseFunc(config.nf.focalPointsV.x_2)]);
+    config.nf.focalPointsV.eval.y_2 = eval(['config.nf.focalPointsV.y_2',parseFunc(config.nf.focalPointsV.y_2)]);
+    config.nf.focalPointsV.eval.z_2 = eval(['config.nf.focalPointsV.z_2',parseFunc(config.nf.focalPointsV.z_2)]);
+
+    config.nf.focalDirectionsL.eval.x_2 = eval(['config.nf.focalDirectionsL.x_2',parseFunc(config.nf.focalDirectionsL.x_2)]);
+    config.nf.focalDirectionsL.eval.y_2 = eval(['config.nf.focalDirectionsL.y_2',parseFunc(config.nf.focalDirectionsL.y_2)]);
+    config.nf.focalDirectionsL.eval.z_2 = eval(['config.nf.focalDirectionsL.z_2',parseFunc(config.nf.focalDirectionsL.z_2)]);
+
+    config.nf.focalDirectionsV.eval.x_2 = eval(['config.nf.focalDirectionsV.x_2',parseFunc(config.nf.focalDirectionsV.x_2)]);
+    config.nf.focalDirectionsV.eval.y_2 = eval(['config.nf.focalDirectionsV.y_2',parseFunc(config.nf.focalDirectionsV.y_2)]);
+    config.nf.focalDirectionsV.eval.z_2 = eval(['config.nf.focalDirectionsV.z_2',parseFunc(config.nf.focalDirectionsV.z_2)]);
+    
+    config.nf.focalPointsL.eval.x = cat(2,config.nf.focalPointsL.eval.x,config.nf.focalPointsL.eval.x_2);
+    config.nf.focalPointsL.eval.y = cat(2,config.nf.focalPointsL.eval.y,config.nf.focalPointsL.eval.y_2);
+    config.nf.focalPointsL.eval.z = cat(2,config.nf.focalPointsL.eval.z,config.nf.focalPointsL.eval.z_2);
+    
+    config.nf.focalPointsV.eval.x = cat(2,config.nf.focalPointsV.eval.x,config.nf.focalPointsV.eval.x_2);
+    config.nf.focalPointsV.eval.y = cat(2,config.nf.focalPointsV.eval.y,config.nf.focalPointsV.eval.y_2);
+    config.nf.focalPointsV.eval.z = cat(2,config.nf.focalPointsV.eval.z,config.nf.focalPointsV.eval.z_2);
+    
+    config.nf.focalDirectionsV.eval.x = cat(2,config.nf.focalDirectionsV.eval.x,config.nf.focalDirectionsV.eval.x_2);
+    config.nf.focalDirectionsV.eval.y = cat(2,config.nf.focalDirectionsV.eval.y,config.nf.focalDirectionsV.eval.y_2);
+    config.nf.focalDirectionsV.eval.z = cat(2,config.nf.focalDirectionsV.eval.z,config.nf.focalDirectionsV.eval.z_2);
+    
+    config.nf.focalDirectionsL.eval.x = cat(2,config.nf.focalDirectionsL.eval.x,config.nf.focalDirectionsL.eval.x_2);
+    config.nf.focalDirectionsL.eval.y = cat(2,config.nf.focalDirectionsL.eval.y,config.nf.focalDirectionsL.eval.y_2);
+    config.nf.focalDirectionsL.eval.z = cat(2,config.nf.focalDirectionsL.eval.z,config.nf.focalDirectionsL.eval.z_2);
+end
+
 
 %% Scattering function
 if(config.sctType == 3)

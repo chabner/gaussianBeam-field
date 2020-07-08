@@ -11,14 +11,11 @@ config = preprocessConfig(config);
 
 plotFitting(config.cacheIdx)
 
-Nl = numel(config.focalPointsL.base);
-Nv = numel(config.focalPointsV.base);
-
 tic
-[C_hg,Cs_hg,xRep] = run_rendering(config);
+C_hg = run_rendering(config);
 t = toc
 
-figure, imagesc(abs(reshape(C_hg,Nv,Nv*Nl))), colorbar
+figure, imagesc(abs(reshape(C_hg,size(C_hg,1),[]))), colorbar
 
 %% Tabulated
 
@@ -36,11 +33,8 @@ config.pdf = sqrt(evaluateHG(theta, ampfunc, 0, 3));
 config = preprocessConfig(config);
 plotFitting(config.cacheIdx)
 
-Nl = numel(config.focalPointsL.base);
-Nv = numel(config.focalPointsV.base);
-
 tic
-[C_tabulated,Cs_tabulated] = run_rendering(config);
+C_tabulated = run_rendering(config);
 t = toc
 
-figure, imagesc(abs(reshape(C_tabulated,Nv,Nv*Nl))), colorbar
+figure, imagesc(abs(reshape(C_tabulated,size(C_tabulated,1),[]))), colorbar

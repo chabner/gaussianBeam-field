@@ -18,46 +18,45 @@ function plotCompare(configName,onlyFull)
     clear config
     run(['expirements',filesep,configName]);
     [config] = preprocessConfig(config);
-
-    Nv = numel(config.focalPointsV.base);
-    Nl = numel(config.focalPointsL.base);
-    
-    focalPointsL = gather(config.focalPointsL.vector);
-    focalPointsV = gather(config.focalPointsV.vector);
-    
-    focalDirectionL = gather(config.focalDirectionsL.vector);
-    focalDirectionV = gather(config.focalDirectionsV.vector);
     
     tic                
     [u_nf,us_nf] = run_rendering(config);
     toc
-    u_nf = reshape(u_nf,Nl,Nv,Nv);
-    us_nf = reshape(us_nf,Nl,Nv,Nv);
-    u_nf = permute(u_nf,[2,3,1]);
-    us_nf = permute(us_nf,[2,3,1]);
     
-    u_nf = gather(u_nf);
-    us_nf = gather(us_nf);
-
     clear config;
     run(['expirements',filesep,configName]);
+    
+    % forward
+    config.ff.parameters.z_l_sign = 1;
+    config.ff.parameters.z_v_sign = 1;
+    
     config = preprocessConfig_ff(config);
-    l = -1:0.04:1;
-    v = -1:0.04:1;
+
+    tic
+    [u_ff_forward,us_ff_forward] = run_farField(config);
+    toc
+        
+    % backward
+    config.ff.parameters.z_l_sign = -1;
+    config.ff.parameters.z_v_sign = 1;
+    
+    config = preprocessConfig_ff(config);
     
     tic
-    [u_ff_full,us_ff_full] = farField_refocuse(config,l,v,focalPointsL,focalPointsV,focalDirectionL,focalDirectionV,'full');
+    [u_ff_backward,us_ff_backward] = run_farField(config);
     toc
+        
+    % full
+    config.ff.parameters.z_l_sign = [1,-1];
+    config.ff.parameters.z_v_sign = [1,-1];
     
-    if(~onlyFull)
-        tic
-        [u_ff_forward,us_ff_forward] = farField_refocuse(config,l,v,focalPointsL,focalPointsV,focalDirectionL,focalDirectionV,'forward');
-        toc
-
-        tic
-        [u_ff_backward,us_ff_backward] = farField_refocuse(config,l,v,focalPointsL,focalPointsV,focalDirectionL,focalDirectionV,'backward');
-        toc
-    end
+    config = preprocessConfig_ff(config);
+    
+    tic
+    [u_ff_full,us_ff_full] = run_farField(config);
+    toc
+        
+    Nl = size(u_nf,3);
     
     figure;
 

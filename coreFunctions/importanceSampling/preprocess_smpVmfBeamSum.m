@@ -4,7 +4,7 @@ function [prepocessRes] = preprocess_smpVmfBeamSum(config,apertureVmf_l)
 % get geometry / scattering parameters
 
 k = 2*pi;
-kappa_r = 1/config.mask_varL^2;
+kappa_r = 1/config.nf.mask_varL^2;
 sigt = 1/config.MFP;
 kappa_g = config.movmf.mu3;
 box_min = config.box_min;
@@ -13,9 +13,9 @@ box_max = config.box_max;
 % get apertures focal and directions
 
 [mu_r1, mu_r2, mu_r3] = movmfAbsMu(apertureVmf_l);
-P0_x = -imag(apertureVmf_l.mu1)/(2*pi);
-P0_y = -imag(apertureVmf_l.mu2)/(2*pi);
-P0_z = -imag(apertureVmf_l.mu3)/(2*pi);
+P0_x = -imag(apertureVmf_l.mu1 + apertureVmf_l.c)/(2*pi);
+P0_y = -imag(apertureVmf_l.mu2 + apertureVmf_l.c)/(2*pi);
+P0_z = -imag(apertureVmf_l.mu3 + apertureVmf_l.c)/(2*pi);
 
 % project all box points to apertures main axis
 

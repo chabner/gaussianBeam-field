@@ -8,7 +8,7 @@ function costheta=sampleHG(ampfunc, dim,smpNum)
 %     end
     
     if(abs(g) < 0.001)
-         costheta = 2*rand(1,1,1,1,1,smpNum)-1;
+         costheta = 2*rand(1,1,smpNum)-1;
          return
     end
 
