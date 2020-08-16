@@ -46,7 +46,9 @@ af_ang_vl_dimProd = zerosIdx .* af_ang_vl_dimProd;
 % el + el_ms
 el_maxDim = max( ...
     [ndims(l.x)   , ndims(l.y)   , ndims(l.z)   , ...
-     ndims(dirl.x), ndims(dirl.y), ndims(dirl.z)]);
+     ndims(dirl.x), ndims(dirl.y), ndims(dirl.z), ...
+     ndims(lambda)]);
+ el_maxDim = max(3,el_maxDim);
  
 el_lx_size = size(l.x); el_lx_size(end+1:el_maxDim) = 1;
 el_ly_size = size(l.y); el_ly_size(end+1:el_maxDim) = 1;
@@ -56,21 +58,25 @@ el_dirlx_size = size(dirl.x); el_dirlx_size(end+1:el_maxDim) = 1;
 el_dirly_size = size(dirl.y); el_dirly_size(end+1:el_maxDim) = 1;
 el_dirlz_size = size(dirl.z); el_dirlz_size(end+1:el_maxDim) = 1;
 
+el_wavelength_size = size(lambda); el_wavelength_size(end+1:el_maxDim) = 1;
+
 el_dim = max([ ...
     el_lx_size   ; el_ly_size   ; el_lz_size   ; ...
-    el_dirlx_size; el_dirly_size; el_dirlz_size]);
+    el_dirlx_size; el_dirly_size; el_dirlz_size; ...
+    el_wavelength_size]);
 
 el_dim(3) = pathsNum;
 
-el_dimProd = zeros(6,MAX_DIM);
-el_dimProd(1 ,1:numel(el_lx_size))    = cumprod(el_lx_size)   ;
-el_dimProd(2 ,1:numel(el_ly_size))    = cumprod(el_ly_size)   ;
-el_dimProd(3 ,1:numel(el_lz_size))    = cumprod(el_lz_size)   ;
-el_dimProd(4 ,1:numel(el_dirlx_size)) = cumprod(el_dirlx_size);
-el_dimProd(5 ,1:numel(el_dirly_size)) = cumprod(el_dirly_size);
-el_dimProd(6 ,1:numel(el_dirlz_size)) = cumprod(el_dirlz_size);
+el_dimProd = zeros(7,MAX_DIM);
+el_dimProd(1 ,1:numel(el_lx_size))         = cumprod(el_lx_size)   ;
+el_dimProd(2 ,1:numel(el_ly_size))         = cumprod(el_ly_size)   ;
+el_dimProd(3 ,1:numel(el_lz_size))         = cumprod(el_lz_size)   ;
+el_dimProd(4 ,1:numel(el_dirlx_size))      = cumprod(el_dirlx_size);
+el_dimProd(5 ,1:numel(el_dirly_size))      = cumprod(el_dirly_size);
+el_dimProd(6 ,1:numel(el_dirlz_size))      = cumprod(el_dirlz_size);
+el_dimProd(7 ,1:numel(el_wavelength_size)) = cumprod(el_wavelength_size);
 
-zerosIdx = ([ones(6,1),diff(el_dimProd,[],2)] ~= 0);
+zerosIdx = ([ones(7,1),diff(el_dimProd,[],2)] ~= 0);
 
 el_dimProd = circshift(el_dimProd,1,2);
 el_dimProd = zerosIdx .* el_dimProd;
@@ -92,11 +98,13 @@ ff_scattering_dirvz_size = size(dirv.z); ff_scattering_dirvz_size(end+1:ff_scatt
 ff_scattering_af_ang_vl_dim = af_ang_vl_dim; ff_scattering_af_ang_vl_dim(end+1:ff_scattering_maxDim) = 1;
 ff_scattering_el_dim = el_dim; ff_scattering_el_dim(end+1:ff_scattering_maxDim) = 1;
 
-ff_scattering_dim = max([ ff_scattering_af_ang_vl_dim ; ff_scattering_el_dim ; ...
+ff_wavelength_size = size(lambda); ff_wavelength_size(end+1:ff_scattering_maxDim) = 1;
+
+ff_scattering_dim = max([ ff_scattering_af_ang_vl_dim ; ff_scattering_el_dim ; ff_wavelength_size ; ...
     ff_scattering_vx_size   ; ff_scattering_vy_size   ; ff_scattering_vz_size   ; ...
     ff_scattering_dirvx_size; ff_scattering_dirvy_size; ff_scattering_dirvz_size]);
 
-ff_scattering_dimProd = zeros(8,MAX_DIM);
+ff_scattering_dimProd = zeros(9,MAX_DIM);
 ff_scattering_dimProd(1 ,1:numel(ff_scattering_vx_size))       = cumprod(ff_scattering_vx_size)      ;
 ff_scattering_dimProd(2 ,1:numel(ff_scattering_vy_size))       = cumprod(ff_scattering_vy_size)      ;
 ff_scattering_dimProd(3 ,1:numel(ff_scattering_vz_size))       = cumprod(ff_scattering_vz_size)      ;
@@ -105,14 +113,19 @@ ff_scattering_dimProd(5 ,1:numel(ff_scattering_dirvy_size))    = cumprod(ff_scat
 ff_scattering_dimProd(6 ,1:numel(ff_scattering_dirvz_size))    = cumprod(ff_scattering_dirvz_size)   ;
 ff_scattering_dimProd(7 ,1:numel(ff_scattering_af_ang_vl_dim)) = cumprod(ff_scattering_af_ang_vl_dim);
 ff_scattering_dimProd(8 ,1:numel(ff_scattering_el_dim))        = cumprod(ff_scattering_el_dim)       ;
+ff_scattering_dimProd(9 ,1:numel(ff_wavelength_size))          = cumprod(ff_wavelength_size)         ;
 
-zerosIdx = ([ones(8,1),diff(ff_scattering_dimProd,[],2)] ~= 0);
+zerosIdx = ([ones(9,1),diff(ff_scattering_dimProd,[],2)] ~= 0);
 ff_scattering_dimProd = circshift(ff_scattering_dimProd,1,2);
 ff_scattering_dimProd = zerosIdx .* ff_scattering_dimProd;
 ff_scattering_dimProd = circshift(ff_scattering_dimProd,-2,2);
 
 ff_scattering_threads_dim = ff_scattering_dim(3:end);
 ff_u_size = ff_scattering_dim(4:end);
+
+if(numel(ff_u_size) == 1)
+    ff_u_size = [ff_u_size,1];
+end
 
 %% Check legal directions
 
@@ -189,12 +202,12 @@ if(isRefocus)
     
     w_l = (kappaL/(2*pi)) .* exp( -kappaL + ...
         kappaL * (l.x .* refocus.focalDirectionsL.eval.x + l.y .* refocus.focalDirectionsL.eval.y + l.z .* refocus.focalDirectionsL.eval.z) + ...
-         + 1i * 2*pi * (l.x .* refocus.focalPointsL.eval.x + l.y .* refocus.focalPointsL.eval.y + l.z .* refocus.focalPointsL.eval.z)) .* ...
+         + 1i * (2*pi ./ lambda) .* (l.x .* refocus.focalPointsL.eval.x + l.y .* refocus.focalPointsL.eval.y + l.z .* refocus.focalPointsL.eval.z)) .* ...
         sqrt(1 - (l.x.^2) ./ (l.x.^2 + l.y.^2 - 1) - (l.y.^2) ./ (l.x.^2 + l.y.^2 - 1)) .* (l.x.^2 + l.y.^2 < 1);
     
     w_v = (kappaV/(2*pi)) .* exp( -kappaV + ...
         kappaV * (v.x .* refocus.focalDirectionsV.eval.x + v.y .* refocus.focalDirectionsV.eval.y + v.z .* refocus.focalDirectionsV.eval.z) + ...
-         + 1i * 2*pi * (v.x .* refocus.focalPointsV.eval.x + v.y .* refocus.focalPointsV.eval.y + v.z .* refocus.focalPointsV.eval.z)) .* ...
+         + 1i * (2*pi ./ lambda) .* (v.x .* refocus.focalPointsV.eval.x + v.y .* refocus.focalPointsV.eval.y + v.z .* refocus.focalPointsV.eval.z)) .* ...
         sqrt(1 - (v.x.^2) ./ (v.x.^2 + v.y.^2 - 1) - (v.y.^2) ./ (v.x.^2 + v.y.^2 - 1)) .* (v.x.^2 + v.y.^2 < 1);
     
     w_l(isnan(w_l)) = 0;
@@ -202,14 +215,16 @@ if(isRefocus)
     
     w_l = conj(w_l);
     
-    % v dims | l dims reshape
+    % v dims | l dims | common dims reshape
     ff_v_dims_num = find(ff_v_dims ~= 1);
     ff_l_dims_num = find(ff_l_dims ~= 1);
     permute_ff_dims = [ff_v_dims_num, ff_l_dims_num];
-    reshape_ff_dims = [prod(ff_v_dims), prod(ff_l_dims)];
-        
-    nf_maxDim = refocus.nf_dims;
     
+    maxDim = refocus.nf_dims + refocus.common_dims + refocus.ff_dims;
+    permute_ff_dims = [permute_ff_dims,(numel(permute_ff_dims)+1):1:maxDim];
+        
+    nf_maxDim = refocus.nf_dims + refocus.common_dims;
+        
     l_x_size = size(refocus.focalPointsL.eval.x); l_x_size = l_x_size((4+ff_maxDim):end); l_x_size(end+1:nf_maxDim) = 1;
     l_y_size = size(refocus.focalPointsL.eval.y); l_y_size = l_y_size((4+ff_maxDim):end); l_y_size(end+1:nf_maxDim) = 1;
     l_z_size = size(refocus.focalPointsL.eval.z); l_z_size = l_z_size((4+ff_maxDim):end); l_z_size(end+1:nf_maxDim) = 1;
@@ -230,24 +245,33 @@ if(isRefocus)
     
     nf_dims = max([nf_l_dims;nf_v_dims]);
     
+    wavelength_size = size(lambda); wavelength_size = wavelength_size((4+ff_maxDim):end); wavelength_size(end+1:nf_maxDim) = 1;
+    common_dims = wavelength_size;
+    
+    cnf_dims = max([nf_dims; common_dims]);
+    cnf_v_dims = max([nf_v_dims; common_dims]);
+    cnf_l_dims = max([nf_l_dims; common_dims]);
+    
+    reshape_ff_dims = [prod(ff_v_dims), prod(ff_l_dims),prod(common_dims)];
+    
     % permute wl
-    w_l = reshape(w_l,size(w_l,2),prod(ff_l_dims),prod(nf_l_dims));
-    w_l = permute(w_l,[2,1,3]);
-    w_l = reshape(w_l,size(w_l,1),size(w_l,2) * size(w_l,3));
+    w_l = reshape(w_l,size(w_l,2),prod(ff_l_dims),prod(nf_l_dims),prod(common_dims));
+    w_l = permute(w_l,[2,1,3,4]);
+    w_l = reshape(w_l,size(w_l,1),size(w_l,2) * size(w_l,3),size(w_l,4));
     
     % permute wv
-    w_v = reshape(w_v,[size(w_v,2),prod(ff_v_dims),nf_v_dims]);
+    w_v = reshape(w_v,[size(w_v,2),prod(ff_v_dims),cnf_v_dims]);
     permuteVec = 1:1:ndims(w_v);
     permuteVec(1) = 2; permuteVec(2) = 1;
     w_v = permute(w_v,permuteVec);
     
     d_ff = (l.x(2) - l.x(1)) * (l.y(2) - l.y(1)) * (v.x(2) - v.x(1)) * (v.x(2) - v.x(1));
 
-    refocus_maxDim = 2 + numel(nf_dims);
+    refocus_maxDim = 2 + numel(cnf_dims);
         
     refocus_dimProd = zeros(2,MAX_DIM);
-    refocus_dimProd(1 ,1:refocus_maxDim) = cumprod([prod(ff_v_dims),size(w_v,2),nf_v_dims]);
-    refocus_dimProd(2 ,1:refocus_maxDim) = cumprod([prod(ff_v_dims),size(w_v,2),nf_l_dims]);
+    refocus_dimProd(1 ,1:refocus_maxDim) = cumprod([prod(ff_v_dims),size(w_v,2),cnf_v_dims]);
+    refocus_dimProd(2 ,1:refocus_maxDim) = cumprod([prod(ff_v_dims),size(w_v,2),cnf_l_dims]);
 
     zerosIdx = ([ones(2,1),diff(refocus_dimProd,[],2)] ~= 0);
     refocus_dimProd = circshift(refocus_dimProd,1,2);
@@ -256,6 +280,9 @@ if(isRefocus)
     
     w_l = gpuArray(complex(w_l));
     w_v = gpuArray(complex(w_v));
+    
+    u_wl = gpuArray(complex(zeros(prod(ff_v_dims),size(w_l,2),size(w_l,3))));
+
 end
 
 %% Gpu function
@@ -317,10 +344,10 @@ if(isRefocus)
         gpuFunc.refocus = parallel.gpu.CUDAKernel('ff_core.ptx','ff_core.cu','refocus_field');
     end
     
-    gpuFunc.refocus.GridSize = [ceil(prod(nf_dims)/gpuFunc.refocus.MaxThreadsPerBlock) 1 1];
+    gpuFunc.refocus.GridSize = [ceil(prod(cnf_dims)/gpuFunc.refocus.MaxThreadsPerBlock) 1 1];
     gpuFunc.refocus.ThreadBlockSize = [gpuFunc.refocus.MaxThreadsPerBlock 1 1];
 
-    setConstantMemory(gpuFunc.refocus,'refocus_dimProd',uint32(cumprod(nf_dims)));
+    setConstantMemory(gpuFunc.refocus,'refocus_dimProd',uint32(cumprod(cnf_dims)));
     setConstantMemory(gpuFunc.refocus,'refocus_maxDim',uint32(refocus_maxDim - 2));
     setConstantMemory(gpuFunc.refocus,'refocus_inDimProd',uint32(refocus_dimProd.'));
 
@@ -352,8 +379,8 @@ else
 end
 
 if(isRefocus)
-    u_nf = gpuArray(complex(zeros(nf_dims)));
-    us_nf = gpuArray(complex(zeros(nf_dims)));
+    u_nf = gpuArray(complex(zeros(cnf_dims)));
+    us_nf = gpuArray(complex(zeros(cnf_dims)));
 end
 
 % Pre-calculate single scattering rotation amplitude, only possible when
@@ -406,6 +433,7 @@ for itr=1:maxItr
             w0p=ones(1,1,pathsNum)./sqrt(2^(dim-1)*pi);
         case 2
             % g0
+            meanl = [0;0;1];
             w=smpampfunc_general(meanl, sct_type,ampfunc0,pathsNum);     
             w0p=(evalampfunc_general(meanl'*w,sct_type,ampfunc0,dim));
         case 3
@@ -416,7 +444,7 @@ for itr=1:maxItr
             w0p = ampfunc0.inPxpw(2,1,itr);
     end
 
-    [e_l0, e_l0_ms] = feval(gpuFunc.el, e_l0, e_l0_ms, tabulatedAmplitudeFunction, x, w, w0p, ...
+    [e_l0, e_l0_ms] = feval(gpuFunc.el, e_l0, e_l0_ms, lambda, tabulatedAmplitudeFunction, x, w, w0p, ...
         l.x, l.y, l.z, dirl.x, dirl.y, dirl.z);
     
     activatedPaths = true(pathsNum,1,'gpuArray');
@@ -438,16 +466,19 @@ for itr=1:maxItr
             constCont = sqrt(weight./px)*exp(2*pi*1i*rand);
             
             if(isRefocus && refocus.correlationActive)
-                u_ff = feval(gpuFunc.ff_mscattering, u0_ff, e_l0_ms, activatedPaths, ...
+                u_ff = feval(gpuFunc.ff_mscattering, u0_ff, e_l0_ms, lambda, activatedPaths, ...
                     tabulatedAmplitudeFunction, x, ow, constCont, ...
                     v.x, v.y, v.z, dirv.x, dirv.y, dirv.z) .* ff_legal_idx;
                 
-                u_wl = (reshape(permute(u_ff,permute_ff_dims),reshape_ff_dims) * w_l);
-                u_wl = reshape(u_wl,[prod(ff_v_dims),2,nf_l_dims]);
+                u_ff_reshaped = reshape(permute(u_ff,permute_ff_dims),reshape_ff_dims);
                 
-                u_nf = feval(gpuFunc.refocus, u_nf, u_wl, w_v);
+                for commonParamNum = 1:1:size(w_l,3)
+                    u_wl(:,:,commonParamNum) = u_ff_reshaped(:,:,commonParamNum) * w_l(:,:,commonParamNum);
+                end
+                
+                u_nf = feval(gpuFunc.refocus, u_nf, reshape(u_wl,[prod(ff_v_dims),2,cnf_l_dims]), w_v);
             else
-                u_ff = feval(gpuFunc.ff_mscattering, u_ff, e_l0_ms, activatedPaths, ...
+                u_ff = feval(gpuFunc.ff_mscattering, u_ff, e_l0_ms, lambda, activatedPaths, ...
                     tabulatedAmplitudeFunction, x, ow, constCont, ...
                     v.x, v.y, v.z, dirv.x, dirv.y, dirv.z) .* ff_legal_idx;
             end
@@ -458,15 +489,18 @@ for itr=1:maxItr
             constCont = sqrt(weight./px).*exp(2*pi*1i*rand(1,1,pathsNum));
             
             if(isRefocus && refocus.correlationActive)
-                u_ff = feval(gpuFunc.ff_scattering, u0_ff, e_l0, af_ang_vl, x, constCont, ...
+                u_ff = feval(gpuFunc.ff_scattering, u0_ff, e_l0, lambda, af_ang_vl, x, constCont, ...
                     v.x, v.y, v.z, dirv.x, dirv.y, dirv.z) .* ff_legal_idx;
                 
-                u_wl = (reshape(permute(u_ff,permute_ff_dims),reshape_ff_dims) * w_l);
-                u_wl = reshape(u_wl,[prod(ff_v_dims),2,nf_l_dims]);
+                u_ff_reshaped = reshape(permute(u_ff,permute_ff_dims),reshape_ff_dims);
                 
-                us_nf = feval(gpuFunc.refocus, us_nf, u_wl, w_v);
+                for commonParamNum = 1:1:size(w_l,3)
+                    u_wl(:,:,commonParamNum) = u_ff_reshaped(:,:,commonParamNum) * w_l(:,:,commonParamNum);
+                end
+                
+                us_nf = feval(gpuFunc.refocus, us_nf, reshape(u_wl,[prod(ff_v_dims),2,cnf_l_dims]), w_v);
             else
-                us_ff = feval(gpuFunc.ff_scattering, us_ff, e_l0, af_ang_vl, x, constCont, ...
+                us_ff = feval(gpuFunc.ff_scattering, us_ff, e_l0, lambda, af_ang_vl, x, constCont, ...
                     v.x, v.y, v.z, dirv.x, dirv.y, dirv.z) .* ff_legal_idx;
             end
 
@@ -550,7 +584,7 @@ if(isRefocus)
         us = us_nf * (1/maxItr*V*sigt) * d_ff^2;
     end
 else
-    if(~correlationFlag)
+    if(size(l.x,2) == 1)
         u  = u_ff  * sqrt(1/maxItr*V*sigt);
         us = us_ff * sqrt(1/maxItr*V*sigt);
     else

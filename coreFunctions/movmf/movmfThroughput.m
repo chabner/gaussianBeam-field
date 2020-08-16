@@ -1,4 +1,4 @@
-function [throughputVmf] = movmfThroughput(apertureVmf,x,signz,sigt,dz)
+function [throughputVmf] = movmfThroughput(apertureVmf,wavelength,x,signz,sigt,dz)
 % compute the throughput due to scattering
 %
 % INPUT:
@@ -11,9 +11,9 @@ function [throughputVmf] = movmfThroughput(apertureVmf,x,signz,sigt,dz)
 % OUTPUT
 % throughputVmf: the throughput after scattering
 
-throughputVmf.mu1 = apertureVmf.mu1 - signz * 2*pi*1i*x(1,1,:);
-throughputVmf.mu2 = apertureVmf.mu2 - signz * 2*pi*1i*x(2,1,:);
-throughputVmf.mu3 = apertureVmf.mu3 - signz * 2*pi*1i*x(3,1,:);
+throughputVmf.mu1 = apertureVmf.mu1 - signz * 2*pi*1i*x(1,1,:)./wavelength;
+throughputVmf.mu2 = apertureVmf.mu2 - signz * 2*pi*1i*x(2,1,:)./wavelength;
+throughputVmf.mu3 = apertureVmf.mu3 - signz * 2*pi*1i*x(3,1,:)./wavelength;
 throughputVmf.c   = apertureVmf.c   + complex(-(sigt/2)*dz);
 
 end

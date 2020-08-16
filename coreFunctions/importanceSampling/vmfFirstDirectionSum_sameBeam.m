@@ -4,13 +4,13 @@ dim = 3;
 
 % normalize
 size_c = size(movmf.c);
-aperturesNum = prod([size_c(2),size_c(4:end)]);
+% aperturesNum = prod([size_c(2),size_c(4:end)]);
 totalSmpNum = numel(n);
 
 if(size_c(2) == 2)
     N = (mod(n(:),2)+1) + 2 * (0:1:(totalSmpNum-1)).' + 2 * totalSmpNum * floor((n(:) - 1)/2);
 else
-    N = (1:totalSmpNum).' + aperturesNum * (n(:) - 1);
+    N = (1:totalSmpNum).' + totalSmpNum * (n(:) - 1);
 end
 
 if(isa(movmf.c,'gpuArray'))

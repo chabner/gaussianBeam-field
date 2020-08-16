@@ -21,7 +21,8 @@ MAX_DIM = 32;
 
 conv_maxDim = max( ...
     [ndims(apertureVmf_l.mu1) , ndims(apertureVmf_l.mu2) , ndims(apertureVmf_l.mu3) , ...
-     ndims(apertureVmf_v.dir1), ndims(apertureVmf_v.dir2), ndims(apertureVmf_v.dir3)]);
+     ndims(apertureVmf_v.dir1), ndims(apertureVmf_v.dir2), ndims(apertureVmf_v.dir3), ...
+     ndims(lambda)]);
  
 % convolution dims
 conv_mu1_size = size(apertureVmf_l.mu1); conv_mu1_size(end+1:conv_maxDim) = 1;
@@ -42,13 +43,17 @@ conv_ldir1_size = size(apertureVmf_l.dir1); conv_ldir1_size(end+1:conv_maxDim) =
 conv_ldir2_size = size(apertureVmf_l.dir2); conv_ldir2_size(end+1:conv_maxDim) = 1;
 conv_ldir3_size = size(apertureVmf_l.dir3); conv_ldir3_size(end+1:conv_maxDim) = 1;
 
+conv_lambda_size = size(lambda); conv_lambda_size(end+1:conv_maxDim) = 1;
+
 convDim = max([ ...
     conv_mu1_size   ; conv_mu2_size   ; conv_mu3_size    ; ...
-    conv_vdir1_size ; conv_vdir2_size ; conv_vdir3_size]);
+    conv_vdir1_size ; conv_vdir2_size ; conv_vdir3_size  ; ...
+    conv_lambda_size]);
+
 convDim(3) = pathsNum;
 convDim(1) = numel(movmf.alpha);
 
-convDimProd = zeros(11,MAX_DIM);
+convDimProd = zeros(15,MAX_DIM);
 convDimProd(1 ,1:numel(conv_mu1_size))    = cumprod(conv_mu1_size)   ;
 convDimProd(2 ,1:numel(conv_mu2_size))    = cumprod(conv_mu2_size)   ;
 convDimProd(3 ,1:numel(conv_mu3_size))    = cumprod(conv_mu3_size)   ;
@@ -63,8 +68,9 @@ convDimProd(11,1:numel(conv_th_c_size))   = cumprod(conv_th_c_size)  ;
 convDimProd(12,1:numel(conv_ldir1_size))  = cumprod(conv_ldir1_size) ;
 convDimProd(13,1:numel(conv_ldir2_size))  = cumprod(conv_ldir2_size) ;
 convDimProd(14,1:numel(conv_ldir3_size))  = cumprod(conv_ldir3_size) ;
+convDimProd(15,1:numel(conv_lambda_size)) = cumprod(conv_lambda_size) ;
 
-zerosIdx = ([ones(14,1),diff(convDimProd,[],2)] ~= 0);
+zerosIdx = ([ones(15,1),diff(convDimProd,[],2)] ~= 0);
 
 convDimProd = circshift(convDimProd,1,2);
 convDimProd = zerosIdx .* convDimProd;
@@ -72,7 +78,7 @@ convDimProd = zerosIdx .* convDimProd;
 % scattering dims
 scatt_maxDim = max( ...
     [ndims(apertureVmf_v.mu1) , ndims(apertureVmf_v.mu2) , ndims(apertureVmf_v.mu3) , ...
-     numel(convDim)]);
+     numel(convDim), ndims(lambda)]);
  
 scatt_l_size = convDim; scatt_l_size(end+1:scatt_maxDim) = 1;
 
@@ -85,25 +91,29 @@ scatt_vdir1_size = size(apertureVmf_v.dir1); scatt_vdir1_size(end+1:scatt_maxDim
 scatt_vdir2_size = size(apertureVmf_v.dir2); scatt_vdir2_size(end+1:scatt_maxDim) = 1;
 scatt_vdir3_size = size(apertureVmf_v.dir3); scatt_vdir3_size(end+1:scatt_maxDim) = 1;
 
+scatt_lambda_size = size(lambda); scatt_lambda_size(end+1:scatt_maxDim) = 1;
+
 u_size = max([ ...
     scatt_l_size
     scatt_mu1_size   ; scatt_mu2_size   ; scatt_mu3_size    ; ...
-    scatt_vdir1_size ; scatt_vdir2_size ; scatt_vdir3_size]);
+    scatt_vdir1_size ; scatt_vdir2_size ; scatt_vdir3_size  ; ...
+    scatt_lambda_size]);
 
 scattThreadsDims = u_size(3:end);
 u_size = u_size(4:end);
 
-scattDimProd = zeros(8,MAX_DIM);
-scattDimProd(1,1:numel(scatt_l_size))     = cumprod(scatt_l_size)    ;
-scattDimProd(2,1:numel(scatt_mu1_size))   = cumprod(scatt_mu1_size)  ;
-scattDimProd(3,1:numel(scatt_mu2_size))   = cumprod(scatt_mu2_size)  ;
-scattDimProd(4,1:numel(scatt_mu3_size))   = cumprod(scatt_mu3_size)  ;
-scattDimProd(5,1:numel(scatt_c_size))     = cumprod(scatt_c_size)    ;
-scattDimProd(6,1:numel(scatt_vdir1_size)) = cumprod(scatt_vdir1_size);
-scattDimProd(7,1:numel(scatt_vdir2_size)) = cumprod(scatt_vdir2_size);
-scattDimProd(8,1:numel(scatt_vdir3_size)) = cumprod(scatt_vdir3_size);
+scattDimProd = zeros(9,MAX_DIM);
+scattDimProd(1,1:numel(scatt_l_size))      = cumprod(scatt_l_size)     ;
+scattDimProd(2,1:numel(scatt_mu1_size))    = cumprod(scatt_mu1_size)   ;
+scattDimProd(3,1:numel(scatt_mu2_size))    = cumprod(scatt_mu2_size)   ;
+scattDimProd(4,1:numel(scatt_mu3_size))    = cumprod(scatt_mu3_size)   ;
+scattDimProd(5,1:numel(scatt_c_size))      = cumprod(scatt_c_size)     ;
+scattDimProd(6,1:numel(scatt_vdir1_size))  = cumprod(scatt_vdir1_size) ;
+scattDimProd(7,1:numel(scatt_vdir2_size))  = cumprod(scatt_vdir2_size) ;
+scattDimProd(8,1:numel(scatt_vdir3_size))  = cumprod(scatt_vdir3_size) ;
+scattDimProd(9,1:numel(scatt_lambda_size)) = cumprod(scatt_lambda_size);
 
-zerosIdx = ([ones(8,1),diff(scattDimProd,[],2)] ~= 0);
+zerosIdx = ([ones(9,1),diff(scattDimProd,[],2)] ~= 0);
 scattDimProd = circshift(scattDimProd,1,2);
 scattDimProd = zerosIdx .* scattDimProd;
 scattDimProd = circshift(scattDimProd,-2,2);
@@ -111,17 +121,18 @@ scattDimProd = circshift(scattDimProd,-2,2);
 % multiple scattering dims
 mscatt_l_size = [1,scatt_l_size(2:end)];
 
-mscattDimProd = zeros(8,MAX_DIM);
-mscattDimProd(1,1:numel(mscatt_l_size))       = cumprod(mscatt_l_size)      ;
-mscattDimProd(2,1:numel(scatt_mu1_size))      = cumprod(scatt_mu1_size)     ;
-mscattDimProd(3,1:numel(scatt_mu2_size))      = cumprod(scatt_mu2_size)     ;
-mscattDimProd(4,1:numel(scatt_mu3_size))      = cumprod(scatt_mu3_size)     ;
-mscattDimProd(5,1:numel(scatt_c_size))        = cumprod(scatt_c_size)       ;
-mscattDimProd(6,1:numel(scatt_vdir1_size))    = cumprod(scatt_vdir1_size)   ;
-mscattDimProd(7,1:numel(scatt_vdir2_size))    = cumprod(scatt_vdir2_size)   ;
-mscattDimProd(8,1:numel(scatt_vdir3_size))    = cumprod(scatt_vdir3_size)   ;
+mscattDimProd = zeros(9,MAX_DIM);
+mscattDimProd(1,1:numel(mscatt_l_size))     = cumprod(mscatt_l_size)    ;
+mscattDimProd(2,1:numel(scatt_mu1_size))    = cumprod(scatt_mu1_size)   ;
+mscattDimProd(3,1:numel(scatt_mu2_size))    = cumprod(scatt_mu2_size)   ;
+mscattDimProd(4,1:numel(scatt_mu3_size))    = cumprod(scatt_mu3_size)   ;
+mscattDimProd(5,1:numel(scatt_c_size))      = cumprod(scatt_c_size)     ;
+mscattDimProd(6,1:numel(scatt_vdir1_size))  = cumprod(scatt_vdir1_size) ;
+mscattDimProd(7,1:numel(scatt_vdir2_size))  = cumprod(scatt_vdir2_size) ;
+mscattDimProd(8,1:numel(scatt_vdir3_size))  = cumprod(scatt_vdir3_size) ;
+mscattDimProd(9,1:numel(scatt_lambda_size)) = cumprod(scatt_lambda_size);
 
-zerosIdx = ([ones(8,1),diff(mscattDimProd,[],2)] ~= 0);
+zerosIdx = ([ones(9,1),diff(mscattDimProd,[],2)] ~= 0);
 mscattDimProd = circshift(mscattDimProd,1,2);
 mscattDimProd = zerosIdx .* mscattDimProd;
 mscattDimProd = circshift(mscattDimProd,-2,2);
@@ -209,7 +220,7 @@ if(gpuEnable)
     throughputVmf_l.c   = gpuArray(complex(zeros(conv_th_c_size)))  ;
     
     el_zeros = gpuArray(complex(zeros(elDim)));
-    
+    lambda = gpuArray(lambda);
 end
 %% Prepare for algorithm
 if(gpuEnable)
@@ -230,10 +241,10 @@ killThr=0.2;
 dirl_zeros = 0 * apertureVmf_l.dir1 + 0 * apertureVmf_l.dir2 + 0 * apertureVmf_l.dir3;
 dirl = cat(1,apertureVmf_l.dir1 + dirl_zeros,apertureVmf_l.dir2 + dirl_zeros,apertureVmf_l.dir3 + dirl_zeros);
 
-% if(~gpuEnable)
+if(~gpuEnable)
     dirv_zeros = 0 * apertureVmf_v.dir1 + 0 * apertureVmf_v.dir2 + 0 * apertureVmf_v.dir3;
     dirv = cat(1,apertureVmf_v.dir1 + dirv_zeros,apertureVmf_v.dir2 + dirv_zeros,apertureVmf_v.dir3 + dirv_zeros);
-% end
+end
 
 %% Begin the main loop
 for itr=1:maxItr
@@ -271,13 +282,13 @@ for itr=1:maxItr
         [conv_vmf_l0.mu1,conv_vmf_l0.mu2,conv_vmf_l0.mu3,conv_vmf_l0.c, ...
             throughputVmf_l.mu1,throughputVmf_l.mu2,throughputVmf_l.mu3,throughputVmf_l.c] = ...
             feval(gpuFunc.movmfConv,conv_vmf_l0.mu1,conv_vmf_l0.mu2,conv_vmf_l0.mu3,conv_vmf_l0.c,...
-            throughputVmf_l.mu1,throughputVmf_l.mu2,throughputVmf_l.mu3,throughputVmf_l.c, x, ...
+            throughputVmf_l.mu1,throughputVmf_l.mu2,throughputVmf_l.mu3,throughputVmf_l.c, lambda, x, ...
             apertureVmf_l.mu1, apertureVmf_l.mu2, apertureVmf_l.mu3, apertureVmf_l.c, ...
             apertureVmf_v.dir1,apertureVmf_v.dir2,apertureVmf_v.dir3, ...
             apertureVmf_l.dir1,apertureVmf_l.dir2,apertureVmf_l.dir3);
     else
         dz = cubeDist(x,box_min,box_max,-dirl);
-        throughputVmf_l = movmfThroughput(apertureVmf_l,x,-1,sigt,dz);
+        throughputVmf_l = movmfThroughput(apertureVmf_l,lambda,x,-1,sigt,dz);
         
         conv_vmf_l0 = movmfConv(throughputVmf_l,apertureVmf_v,movmf);
     end
@@ -294,7 +305,8 @@ for itr=1:maxItr
         case 3
 %             [w,w0p] = vmfFirstDirection(conv_vmf_l0);
         case 4
-            n = randi(prod(conv_vmf_l0.dim(2:end)),[1,1,1,1,1,pathsNum]);
+            Naperture = numel(apertureVmf_l.c);
+            n = randi(Naperture,[1,1,pathsNum]);
             [w,w0p] = vmfFirstDirectionSum_sameBeam(conv_vmf_l0,movmf.alpha,n);
         case 5
             [w,w0p] = vmfFirstDirectionSum_sameBeam(conv_vmf_l0,movmf.alpha,n);
@@ -312,21 +324,21 @@ for itr=1:maxItr
 %         randPhase = exp(2*pi*1i*rand(1,1,1,1,1,pathsNum,'gpuArray'));
         randPhase = gpuArray(exp(2*pi*1i*rand(1,1,pathsNum)));
         
-        us = feval(gpuFunc.singleScattering,us,gpuArray(x),(2*pi*randPhase./sqrt(px)), ...
+        us = feval(gpuFunc.singleScattering,us,lambda,gpuArray(x),(2*pi*randPhase./sqrt(px)), ...
             conv_vmf_l0.mu1, conv_vmf_l0.mu2, conv_vmf_l0.mu3, conv_vmf_l0.c, ...
             apertureVmf_v.mu1, apertureVmf_v.mu2, apertureVmf_v.mu3, apertureVmf_v.c,...
             apertureVmf_v.dir1,apertureVmf_v.dir2,apertureVmf_v.dir3);
     else
         randPhase = exp(2*pi*1i*rand(1,1,pathsNum));
         dz = cubeDist(x,box_min,box_max,dirv);
-        throughputVmf_v = movmfThroughput(apertureVmf_v,x,1,sigt,dz);
+        throughputVmf_v = movmfThroughput(apertureVmf_v,lambda,x,1,sigt,dz);
         movmf_mult = movmfMultiple(conv_vmf_l0,throughputVmf_v,false);
         movmf_mult.alpha = movmf.alpha;
         [integrateMult] = movmfIntegrate(movmf_mult);
         us_res = integrateMult .* randPhase ./ sqrt(px);
         
         if(correlationFlag)
-            us = us + squeeze(sum(us_res(1,1,:,:,:,:) .* conj(us_res(1,2,:,:,:,:)),3));
+            us = us + squeeze(sum(us_res(1,1,:,:,:,:,:) .* conj(us_res(1,2,:,:,:,:,:)),1));
         else
             us = us + squeeze(sum(us_res(1,1,:,:,:,:),3));
         end
@@ -373,7 +385,7 @@ for itr=1:maxItr
                 randPhase = gpuArray(exp(2*pi*1i*rand(1,1,pathsNum)));
                 
                 u = feval(gpuFunc.multipleScattering,u, el, ...
-                    x, ow, (2 * pi * randPhase ./ sqrt(px)), activatedPaths, ...
+                    lambda, x, ow, (2 * pi * randPhase ./ sqrt(px)), activatedPaths, ...
                     apertureVmf_v.mu1, apertureVmf_v.mu2, apertureVmf_v.mu3, apertureVmf_v.c, ...
                     apertureVmf_v.dir1,apertureVmf_v.dir2,apertureVmf_v.dir3);
             else
@@ -383,14 +395,14 @@ for itr=1:maxItr
                 rotatedMovmf_v = movmfRotate(movmf,ow);
                 
                 dz = cubeDist(x,box_min,box_max,dirv);
-                throughputVmf_v = movmfThroughput(apertureVmf_v,x,1,sigt,dz);
+                throughputVmf_v = movmfThroughput(apertureVmf_v,lambda,x,1,sigt,dz);
                 throughputVmf_v_times_movmf = movmfMultiple(throughputVmf_v,rotatedMovmf_v,true);
                 throughputVmf_v_times_movmf.alpha = movmf.alpha;
                 ev = movmfIntegrate(throughputVmf_v_times_movmf);
                 u_res = (ev .* el ./ sqrt(px) .* randPhase);
                 
                 if(correlationFlag)
-                    u = u + squeeze(sum(u_res(1,1,activatedPaths,:,:,:) .* conj(u_res(1,2,activatedPaths,:,:,:)),3));
+                    u = u + squeeze(sum(u_res(activatedPaths,1,:,:,:,:,:) .* conj(u_res(activatedPaths,2,:,:,:,:,:)),1));
                 else
                     u = u + squeeze(sum(u_res(1,1,activatedPaths,:,:,:),3));
                 end

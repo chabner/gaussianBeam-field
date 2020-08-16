@@ -16,11 +16,14 @@ config.useGpu = true;
 
 %% Sample
 config.dimNum = 3;
-config.wavelenght = 1;
 config.MFP = 10;
 config.boxDepth = 10;
 config.boxAxial = 10;
 config.boxShift = [0;0;0];
+
+%% common parameters
+config.parameters.lambda = [0.5,1,2];
+config.wavelenght = @(lambda) lambda;
 
 %% ff parameters
 config.ff.parameters.v_x = -1:0.1:1;

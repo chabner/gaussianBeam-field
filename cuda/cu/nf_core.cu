@@ -5,7 +5,7 @@
 
 #define PI 3.141592653589793238
 #define MAX_DIM 32
-#define MAX_IN 15
+#define MAX_IN 17
 
 // conv specific data
 __constant__ uint32_t conv_maxDim; // max dim is defined from 1 to MAX_DIM of dimProd
@@ -119,7 +119,7 @@ __inline __device__ double2 complexConj(double2 a)
 
 __inline __device__ double2 wrapTo2Pi(double2 a)
 {
-    a.y = fmod(a.y,2*PI);
+    a.y = fmod(a.y, 2 * PI);
     return a;
 }
 
@@ -150,7 +150,7 @@ __device__ double2 complexExponent(double2 a)
     sincos(a.y, &sina, &cosa);
     a.x = expr * cosa;
     a.y = expr * sina;
-    
+
     return a;
 }
 
@@ -164,7 +164,7 @@ __device__ double2 complexLog(double2 val)
 {
     double2 logRes;
     logRes.x = log(sqrt(val.x * val.x + val.y * val.y));
-    logRes.y = atan2(val.y , val.x);
+    logRes.y = atan2(val.y, val.x);
     return logRes;
 }
 
@@ -196,7 +196,7 @@ __device__ void sub2ind(unsigned int* siz, unsigned int sizDim, unsigned int* ou
     }
 }
 
-__device__ void apToth(double2* mu, double3 v, const double* x, int signz)
+__device__ void apToth(double2* mu, double3 v, const double* x, int signz, double wavelength)
 {
     double bd1, bd2, bd3, dz;
 
@@ -232,9 +232,9 @@ __device__ void apToth(double2* mu, double3 v, const double* x, int signz)
     dz = abs(fmin(fmin(bd1, bd2), bd3));
 
     // Throughput
-    mu[0].y -= 2 * signz * PI * x[0];
-    mu[1].y -= 2 * signz * PI * x[1];
-    mu[2].y -= 2 * signz * PI * x[2];
+    mu[0].y -= 2 * signz * PI * x[0] / wavelength;
+    mu[1].y -= 2 * signz * PI * x[1] / wavelength;
+    mu[2].y -= 2 * signz * PI * x[2] / wavelength;
     mu[3] = mu[3] + (-sigt * dz);
 }
 
@@ -256,10 +256,10 @@ __device__ double2 calcSqrtMu(double2 a, double2 b, double2 c)
     // 1/r is b.y
     // absrz is c.x
 
-    b.x = sqrt(fma(x_m , x_m , y_m * y_m));
+    b.x = sqrt(fma(x_m, x_m, y_m * y_m));
     b.y = 1 / b.x;
 
-    c.x = 1 / sqrt(( fma(b.x + x_m , b.x + x_m , y_m * y_m )) * b.y);
+    c.x = 1 / sqrt((fma(b.x + x_m, b.x + x_m, y_m * y_m)) * b.y);
     a.x = c.x * (x_m + b.x);
     a.y = c.x * y_m;
 
@@ -267,7 +267,7 @@ __device__ double2 calcSqrtMu(double2 a, double2 b, double2 c)
 }
 
 __global__ void movmfConv(double2* mu1, double2* mu2, double2* mu3, double2* c,
-    double2* lThMu1, double2* lThMu2, double2* lThMu3, double2* lThC, const double* x,
+    double2* lThMu1, double2* lThMu2, double2* lThMu3, double2* lThC, const double* wavelength, const double* x,
     const double2* lApMu1, const double2* lApMu2, const double2* lApMu3, const double2* lApC,
     const double* dirv_x, const double* dirv_y, const double* dirv_z,
     const double* dirl_x, const double* dirl_y, const double* dirl_z)
@@ -293,9 +293,10 @@ __global__ void movmfConv(double2* mu1, double2* mu2, double2* mu3, double2* c,
         // 11 - dirl_x
         // 12 - dirl_y
         // 13 - dirl_z
+        // 14 - wavelength
 
-        unsigned int dimsVec[14] = { 0 };
-        sub2ind(uDimIdx, conv_maxDim, dimsVec, 14, conv_inDimProd);
+        unsigned int dimsVec[15] = { 0 };
+        sub2ind(uDimIdx, conv_maxDim, dimsVec, 15, conv_inDimProd);
 
         double3 v_l, v_v, w;
         double2 v_mu_c[4];
@@ -305,7 +306,7 @@ __global__ void movmfConv(double2* mu1, double2* mu2, double2* mu3, double2* c,
         v_l.x = dirl_x[dimsVec[11]]; v_l.y = dirl_y[dimsVec[12]]; v_l.z = dirl_z[dimsVec[13]];
 
         v_mu_c[0] = lApMu1[dimsVec[0]]; v_mu_c[1] = lApMu2[dimsVec[1]]; v_mu_c[2] = lApMu3[dimsVec[2]]; v_mu_c[3] = lApC[dimsVec[3]];
-        apToth(v_mu_c, -v_l, currX, -1);
+        apToth(v_mu_c, -v_l, currX, -1, wavelength[dimsVec[14]]);
 
         double gamma_s = mixtureMu[uDimIdx[0]];
 
@@ -337,7 +338,7 @@ __global__ void movmfConv(double2* mu1, double2* mu2, double2* mu3, double2* c,
             v_mu_c[0] + gamma_s * w.x,
             v_mu_c[1] + gamma_s * w.y,
             v_mu_c[2] + gamma_s * w.z
-            );
+        );
 
         c[uIdx] = v_mu_c[3] + C + log(2 * PI) - complexLog(C) + mixtureC[uDimIdx[0]] - log_estimated_conv_max;
         lThMu1[dimsVec[7]] = v_mu_c[0];
@@ -380,7 +381,7 @@ __global__ void integrateEl(double2* el, const double* w, const double* w0p,
     }
 }
 
-__global__ void singleScattering(double2* u, const double* x, const double2* randomPhase,
+__global__ void singleScattering(double2* u, const double* wavelength, const double* x, const double2* randomPhase,
     const double2* lThMu1, const double2* lThMu2, const double2* lThMu3, const double2* lThC,
     const double2* vApMu1, const double2* vApMu2, const double2* vApMu3, const double2* vApC,
     const double* dirv_x, const double* dirv_y, const double* dirv_z)
@@ -400,9 +401,10 @@ __global__ void singleScattering(double2* u, const double* x, const double2* ran
         // 5 - vIdxFocalDirection_x
         // 6 - vIdxFocalDirection_y
         // 7 - vIdxFocalDirection_z
+        // 8 - wavelength
 
-        unsigned int dimsVec[8] = { 0 };
-        sub2ind(uDimIdx, scatt_maxDim, dimsVec, 8, scatt_inDimProd);
+        unsigned int dimsVec[9] = { 0 };
+        sub2ind(uDimIdx, scatt_maxDim, dimsVec, 9, scatt_inDimProd);
         unsigned int uIdx = bIdx / scatt_dimProd[0];
 
 
@@ -417,13 +419,13 @@ __global__ void singleScattering(double2* u, const double* x, const double2* ran
         field_u[0].x = 0; field_u[0].y = 0; field_u[1] = field_u[0];
         v.x = dirv_x[dimsVec[5]]; v.y = dirv_y[dimsVec[6]]; v.z = dirv_z[dimsVec[7]];
         v_mu_c[0] = vApMu1[dimsVec[1]]; v_mu_c[1] = vApMu2[dimsVec[2]]; v_mu_c[2] = vApMu3[dimsVec[3]]; v_mu_c[3] = vApC[dimsVec[4]];
-        apToth(v_mu_c, v, currX, 1);
+        apToth(v_mu_c, v, currX, 1, wavelength[dimsVec[8]]);
 
         if (corrParamNum == 2)
         {
             v.x = dirv_x[dimsVec[5] + 1]; v.y = dirv_y[dimsVec[6] + 1]; v.z = dirv_z[dimsVec[7] + 1];
             v_mu_c[4] = vApMu1[dimsVec[1] + 1]; v_mu_c[5] = vApMu2[dimsVec[2] + 1]; v_mu_c[6] = vApMu3[dimsVec[3] + 1]; v_mu_c[7] = vApC[dimsVec[4] + 1];
-            apToth(v_mu_c + 4, v, currX, 1);
+            apToth(v_mu_c + 4, v, currX, 1, wavelength[dimsVec[8]]);
         }
 
         lIdx = dimsVec[0];
@@ -438,7 +440,7 @@ __global__ void singleScattering(double2* u, const double* x, const double2* ran
                     lThMu1[corrIdx] + v_mu_c[0 + 4 * corrNum],
                     lThMu2[corrIdx] + v_mu_c[1 + 4 * corrNum],
                     lThMu3[corrIdx] + v_mu_c[2 + 4 * corrNum]);
-                field_u[corrNum] = field_u[corrNum] + alpha * (complexExponent((lThC[corrIdx]) + (v_mu_c[3 + 4 * corrNum]) + (sqrtMu) - complexLog(sqrtMu)));
+                field_u[corrNum] = field_u[corrNum] + alpha * (complexExponent((lThC[corrIdx]) + (v_mu_c[3 + 4 * corrNum]) + (sqrtMu)-complexLog(sqrtMu)));
                 //field_u[corrNum] = field_u[corrNum] + alpha * (complexExponent((lThC[corrIdx]) + (v_mu_c[3 + 4 * corrNum]) + (sqrtMu)));
             }
             lIdx++;
@@ -452,7 +454,7 @@ __global__ void singleScattering(double2* u, const double* x, const double2* ran
     }
 }
 
-__global__ void multipleScattering(double2* u, const double2* el, const double* x, const double* w, const double2* randomPhase, const bool* activatedPaths,
+__global__ void multipleScattering(double2* u, const double2* el, const double* wavelength, const double* x, const double* w, const double2* randomPhase, const bool* activatedPaths,
     const double2* vApertureMu1, const double2* vApertureMu2, const double2* vApertureMu3, const double2* vApertureC,
     const double* dirv_x, const double* dirv_y, const double* dirv_z)
 {
@@ -473,9 +475,10 @@ __global__ void multipleScattering(double2* u, const double2* el, const double* 
         // 5 - dirv_x
         // 6 - dirv_y
         // 7 - dirv_z
+        // 8 - wavelength
 
-        unsigned int dimsVec[8] = { 0 };
-        sub2ind(uDimIdx, scatt_maxDim, dimsVec, 8, mscatt_inDimProd);
+        unsigned int dimsVec[9] = { 0 };
+        sub2ind(uDimIdx, scatt_maxDim, dimsVec, 9, mscatt_inDimProd);
         unsigned int uIdx = bIdx / scatt_dimProd[0], mixtureIdx, corrNum;
 
         double3 v;
@@ -484,21 +487,21 @@ __global__ void multipleScattering(double2* u, const double2* el, const double* 
         double2 randPhase = randomPhase[uDimIdx[0]], v_mu_c[8], sqrtMu, alpha, field_u[2];
         const double* currX = x + uDimIdx[0] * 3;
         const double* currW = w + uDimIdx[0] * 3;
-        
+
         field_u[0].x = 0; field_u[0].y = 0; field_u[1] = field_u[0];
 
         v.x = dirv_x[dimsVec[5]]; v.y = dirv_y[dimsVec[6]]; v.z = dirv_z[dimsVec[7]];
         v_mu_c[0] = vApertureMu1[dimsVec[1]]; v_mu_c[1] = vApertureMu2[dimsVec[2]]; v_mu_c[2] = vApertureMu3[dimsVec[3]]; v_mu_c[3] = vApertureC[dimsVec[4]];
-        apToth(v_mu_c, v, currX, 1);
-        
+        apToth(v_mu_c, v, currX, 1, wavelength[dimsVec[8]]);
+
         if (corrParamNum == 2)
         {
             v.x = dirv_x[dimsVec[5] + 1]; v.y = dirv_y[dimsVec[6] + 1]; v.z = dirv_z[dimsVec[7] + 1];
             v_mu_c[4] = vApertureMu1[dimsVec[1] + 1]; v_mu_c[5] = vApertureMu2[dimsVec[2] + 1]; v_mu_c[6] = vApertureMu3[dimsVec[3] + 1]; v_mu_c[7] = vApertureC[dimsVec[4] + 1];
-            apToth(v_mu_c + 4, v, currX, 1);
+            apToth(v_mu_c + 4, v, currX, 1, wavelength[dimsVec[8]]);
         }
 
-        
+
         for (mixtureIdx = 0; mixtureIdx < mixturesNum; mixtureIdx++)
         {
             alpha = mixtureAlpha[mixtureIdx] * randPhase;

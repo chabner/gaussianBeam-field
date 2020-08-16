@@ -13,8 +13,6 @@ for configFilesList = 1:1:numel(configFiles)
     [C,Cs] = run_rendering(config);
 
     t_nf = toc
-    
-    figure, imagesc(abs(reshape(C,size(C,1),[]))), title('NF'), colorbar
 
     clear config;
     run([configFiles(configFilesList).folder,filesep,configFiles(configFilesList).name]);
@@ -28,13 +26,25 @@ for configFilesList = 1:1:numel(configFiles)
     [C_ff,Cs_ff] = run_farField(config);
     t_ff = toc
     
-    figure, imagesc(abs(reshape(C_ff,size(C_ff,1),[]))), title('FF + refocus'), colorbar
+    lambdaTotalNum = size(C,4);
     
-%     tic
-%     [C_binary,Cs_binary] = farField_refocuse_correlation(config,l,v,focalPointsL,focalPointsL_2,focalPointsV,0,...
-%         'forward',[0;0;1],[0;0;1],0.375,true);
-%     t_binary = toc
-%     
-%     figure, imagesc(abs(reshape(C_binary,Nv,Nv*Nl))), title('binary + refocus')
+    figure, imagesc(abs(reshape(C,size(C,1),[]))), title('NF'), colorbar
+    
+    for wavlengthNum = 1:1:lambdaTotalNum
+        subplot(2,lambdaTotalNum,wavlengthNum)
+        imagesc(abs(reshape(C(:,:,:,wavlengthNum),size(C,1),[]))), colorbar
+        title(['\lambda = ',num2str(config.parameters.lambda(wavlengthNum))]);
+        
+        if(wavlengthNum == 1)
+            ylabel('NF','FontSize',14)
+        end
+        
+        subplot(2,lambdaTotalNum,wavlengthNum + lambdaTotalNum)
+        imagesc(abs(reshape(C_ff(:,:,:,wavlengthNum),size(C_ff,1),[]))), colorbar
+        
+        if(wavlengthNum == 1)
+            ylabel('FF + refocus','FontSize',14)
+        end
+    end
 
 end

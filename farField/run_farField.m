@@ -13,7 +13,7 @@ function [u,us] = run_farField(config)
                 config.box_max,                       ... box_max
                 config.iterationsRender,              ... maxItr
                 config.multiplePaths,                 ... pathsNum
-                config.wavelenght,                    ... lambda
+                config.evalWavelenght,                ... lambda
                 config.sampleFlag,                    ... smpFlg
                 config.sct_type,                      ... sct_type
                 config.ampfunc,                       ... ampfunc
@@ -32,7 +32,7 @@ function [u,us] = run_farField(config)
                 config.box_max,                       ... box_max
                 config.iterationsRender,              ... maxItr
                 config.multiplePaths,                 ... pathsNum
-                config.wavelenght,                    ... lambda
+                config.evalWavelenght,                ... lambda
                 config.sampleFlag,                    ... smpFlg
                 config.sct_type,                      ... sct_type
                 config.ampfunc,                       ... ampfunc
@@ -50,7 +50,7 @@ function [u,us] = run_farField(config)
                 config.box_max,                       ... box_max
                 config.iterationsRender,              ... maxItr
                 config.multiplePaths,                 ... pathsNum
-                config.wavelenght,                    ... lambda
+                config.evalWavelenght,                ... lambda
                 config.sampleFlag,                    ... smpFlg
                 config.sct_type,                      ... sct_type
                 config.ampfunc,                       ... ampfunc
@@ -69,7 +69,7 @@ function [u,us] = run_farField(config)
                 config.box_max,                       ... box_max
                 config.iterationsRender,              ... maxItr
                 config.multiplePaths,                 ... pathsNum
-                config.wavelenght,                    ... lambda
+                config.evalWavelenght,                ... lambda
                 config.sampleFlag,                    ... smpFlg
                 config.sct_type,                      ... sct_type
                 config.ampfunc,                       ... ampfunc

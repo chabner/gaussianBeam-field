@@ -1,13 +1,13 @@
-function [apertureVmf] = movmfAperture(aperuteStd,focalPointsSign,...
+function [apertureVmf] = movmfAperture(wavelength, aperuteStd,focalPointsSign,...
     focalPoints_x,focalPoints_y,focalPoints_z,...
     focalDirections_x,focalDirections_y,focalDirections_z)
 % Build vmf aperture
 
 dim = 3;
 
-apertureVmf.mu1 = complex(1/(aperuteStd^2) * focalDirections_x + focalPointsSign * 2 * pi * 1i * focalPoints_x);
-apertureVmf.mu2 = complex(1/(aperuteStd^2) * focalDirections_y + focalPointsSign * 2 * pi * 1i * focalPoints_y);
-apertureVmf.mu3 = complex(1/(aperuteStd^2) * focalDirections_z + focalPointsSign * 2 * pi * 1i * focalPoints_z);
+apertureVmf.mu1 = complex(1/(aperuteStd^2) * focalDirections_x + focalPointsSign * 2 * pi * 1i * focalPoints_x./wavelength);
+apertureVmf.mu2 = complex(1/(aperuteStd^2) * focalDirections_y + focalPointsSign * 2 * pi * 1i * focalPoints_y./wavelength);
+apertureVmf.mu3 = complex(1/(aperuteStd^2) * focalDirections_z + focalPointsSign * 2 * pi * 1i * focalPoints_z./wavelength);
 
 kappa_r = sqrt(real(apertureVmf.mu1).^2 + real(apertureVmf.mu2).^2 + real(apertureVmf.mu3).^2);
 

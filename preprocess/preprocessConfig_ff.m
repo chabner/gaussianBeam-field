@@ -19,7 +19,7 @@ if(~isfield(config,'multiplePaths'))
     config.multiplePaths = 1;
 end
 
-ff_correlationActive = isfield(config.ff,'v.x_2');
+ff_correlationActive = isfield(config.ff.v,'x_2');
 refocus_active = isfield(config,'nf');
 
 if(refocus_active)
@@ -43,10 +43,10 @@ if(~isfield(config.ff,'dir_v'))
 end
 
 %% Parameters
-% ff parameters
-paramsList = fieldnames(config.ff.parameters);
 currDim = 4;
 
+% ff parameters
+paramsList = fieldnames(config.ff.parameters);
 ff_dims = numel(paramsList);
 
 for paramNum = 1:1:ff_dims
@@ -59,6 +59,7 @@ for paramNum = 1:1:ff_dims
     config.ff.parameters.(paramsList{paramNum}) = param;
     currDim = currDim + 1;
 end
+
 
 % refocus parameters
 if(refocus_active)
@@ -80,7 +81,37 @@ if(refocus_active)
     config.nf.nf_dims = nf_dims;
 end
 
+% common parameters
+
+if(isfield(config,'parameters'))
+    paramsList = fieldnames(config.parameters);
+    common_dims = numel(paramsList);
+    for paramNum = 1:1:common_dims
+        param = config.parameters.(paramsList{paramNum});
+        param = param(:);
+        permuteVec = 1:1:currDim;
+        permuteVec(1) = currDim; permuteVec(end) = 1;
+        param = permute(param,permuteVec);
+
+        config.parameters.(paramsList{paramNum}) = param;
+        currDim = currDim + 1;
+    end
+end
+if(refocus_active)
+    if(isfield(config,'parameters'))
+        config.nf.common_dims = common_dims;
+    else
+        config.nf.common_dims = 0;
+    end
+end
+
 %% Evaluate
+if(isa(config.wavelenght,'function_handle'))
+    config.evalWavelenght = eval(['config.wavelenght',parseFunc(config.wavelenght,'config.parameters.')]);
+else
+    config.evalWavelenght = config.wavelenght;
+end
+
 config.v.x = eval(['config.ff.v.x',parseFunc(config.ff.v.x,'config.ff.parameters.')]);
 config.v.y = eval(['config.ff.v.y',parseFunc(config.ff.v.y,'config.ff.parameters.')]);
 config.v.z = eval(['config.ff.v.z',parseFunc(config.ff.v.z,'config.ff.parameters.')]);

@@ -11,7 +11,7 @@ end
   config.box_max,                        ... box_max
   config.iterationsRender,               ... maxItr
   config.multiplePaths,                  ... pathsNum
-  config.wavelenght,                     ... lambda
+  config.evalWavelenght,                 ... lambda
   config.sampleFlag,                     ... smpFlg
   config.smpPreprocess,                  ... smpFunc
   config.movmf,                          ... movmf

@@ -15,8 +15,9 @@ end
 correlationActive = isfield(config.nf.focalPointsL,'x_2');
 
 %% Parameters
-paramsList = fieldnames(config.nf.parameters);
 currDim = 4;
+
+paramsList = fieldnames(config.nf.parameters);
 
 for paramNum = 1:1:numel(paramsList)
     param = config.nf.parameters.(paramsList{paramNum});
@@ -27,6 +28,28 @@ for paramNum = 1:1:numel(paramsList)
     
     config.nf.parameters.(paramsList{paramNum}) = param;
     currDim = currDim + 1;
+end
+
+if(isfield(config,'parameters'))
+    paramsList = fieldnames(config.parameters);
+
+    for paramNum = 1:1:numel(paramsList)
+        param = config.parameters.(paramsList{paramNum});
+        param = param(:);
+        permuteVec = 1:1:currDim;
+        permuteVec(1) = currDim; permuteVec(end) = 1;
+        param = permute(param,permuteVec);
+
+        config.parameters.(paramsList{paramNum}) = param;
+        currDim = currDim + 1;
+    end
+end
+
+% eval wavelength
+if(isa(config.wavelenght,'function_handle'))
+    config.evalWavelenght = eval(['config.wavelenght',parseFunc(config.wavelenght,'config.parameters.')]);
+else
+    config.evalWavelenght = config.wavelenght;
 end
 
 %% Aperture
@@ -48,11 +71,11 @@ config.nf.focalDirectionsV.eval.x = eval(['config.nf.focalDirectionsV.x',parseFu
 config.nf.focalDirectionsV.eval.y = eval(['config.nf.focalDirectionsV.y',parseFunc(config.nf.focalDirectionsV.y)]);
 config.nf.focalDirectionsV.eval.z = eval(['config.nf.focalDirectionsV.z',parseFunc(config.nf.focalDirectionsV.z)]);
 
-config.apertureVmf_l = movmfAperture(config.nf.mask_varL,-1,...
+config.apertureVmf_l = movmfAperture(config.evalWavelenght, config.nf.mask_varL,-1,...
     config.nf.focalPointsL.eval.x    ,config.nf.focalPointsL.eval.y    ,config.nf.focalPointsL.eval.z,...
     config.nf.focalDirectionsL.eval.x,config.nf.focalDirectionsL.eval.y,config.nf.focalDirectionsL.eval.z);
 
-config.apertureVmf_v = movmfAperture(config.nf.mask_varV,1,...
+config.apertureVmf_v = movmfAperture(config.evalWavelenght, config.nf.mask_varV,1,...
     config.nf.focalPointsV.eval.x    ,config.nf.focalPointsV.eval.y    ,config.nf.focalPointsV.eval.z,...
     config.nf.focalDirectionsV.eval.x,config.nf.focalDirectionsV.eval.y,config.nf.focalDirectionsV.eval.z);
 
@@ -73,11 +96,11 @@ if(correlationActive)
     config.nf.focalDirectionsV.eval.y_2 = eval(['config.nf.focalDirectionsV.y_2',parseFunc(config.nf.focalDirectionsV.y_2)]);
     config.nf.focalDirectionsV.eval.z_2 = eval(['config.nf.focalDirectionsV.z_2',parseFunc(config.nf.focalDirectionsV.z_2)]);
 
-    apertureVmf_l_2 = movmfAperture(config.nf.mask_varL,-1,...
+    apertureVmf_l_2 = movmfAperture(config.evalWavelenght, config.nf.mask_varL,-1,...
         config.nf.focalPointsL.eval.x_2    ,config.nf.focalPointsL.eval.y_2    ,config.nf.focalPointsL.eval.z_2,...
         config.nf.focalDirectionsL.eval.x_2,config.nf.focalDirectionsL.eval.y_2,config.nf.focalDirectionsL.eval.z_2);
 
-    apertureVmf_v_2 = movmfAperture(config.nf.mask_varV,1,...
+    apertureVmf_v_2 = movmfAperture(config.evalWavelenght, config.nf.mask_varV,1,...
         config.nf.focalPointsV.eval.x_2    ,config.nf.focalPointsV.eval.y_2    ,config.nf.focalPointsV.eval.z_2,...
         config.nf.focalDirectionsV.eval.x_2,config.nf.focalDirectionsV.eval.y_2,config.nf.focalDirectionsV.eval.z_2);
     
@@ -241,7 +264,8 @@ end
 % Sample 100 different samples, and take the median of px, in order to
 % estimate bad samples
 % pxItersNum = 1e1;
-pxItersNum = 1e3;
+% pxItersNum = 1e3;
+pxItersNum = 1e0;
 minTorr = 1e-3;
 
 box_w = config.box_max-config.box_min;

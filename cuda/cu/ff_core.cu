@@ -182,7 +182,7 @@ __device__ void sub2ind(unsigned int* siz, unsigned int sizDim, unsigned int* ou
     }
 }
 
-__device__ double2 evalphaseatt(double3 v, double3 dirv, const double* x, int signz)
+__device__ double2 evalphaseatt(double3 v, double3 dirv, const double* x, int signz, double wavelength)
 {
     double bd1, bd2, bd3, dz;
     double2 e;
@@ -221,7 +221,7 @@ __device__ double2 evalphaseatt(double3 v, double3 dirv, const double* x, int si
     dz = abs(fmin(fmin(bd1, bd2), bd3));
 
     e.x = -sigt * dz;
-    e.y = -2 * PI * signz * (x[0] * v.x + x[1] * v.y + x[2] * v.z);
+    e.y = -2 * PI / wavelength * signz * (x[0] * v.x + x[1] * v.y + x[2] * v.z);
 
     return complexExponent(e);
 }
@@ -325,7 +325,7 @@ __global__ void af_ang_vl(double* af_ang_vl, const double* ampfunc,
     }
 }
 
-__global__ void ff_calcEl(double2* e_l0, double2* e_l0_ms,
+__global__ void ff_calcEl(double2* e_l0, double2* e_l0_ms, const double* wavelength,
     const double* ampfunc, const double* x, const double* w0, const double* w0_p,
     const double* l1, const double* l2, const double* l3,
     const double* dir_l1, const double* dir_l2, const double* dir_l3)
@@ -343,9 +343,10 @@ __global__ void ff_calcEl(double2* e_l0, double2* e_l0_ms,
         // 3  - dir_l1
         // 4  - dir_l2
         // 5  - dir_l3
+        // 6  - wavelength
 
-        unsigned int dimsVec[6] = { 0 };
-        sub2ind(uDimIdx, el_maxDim, dimsVec, 6, el_inDimProd);
+        unsigned int dimsVec[7] = { 0 };
+        sub2ind(uDimIdx, el_maxDim, dimsVec, 7, el_inDimProd);
 
         const double* currW = w0 + dims * uDimIdx[2]; // uDimIdx[2] is the path number
         const double* currX = x + dims * uDimIdx[2];
@@ -372,14 +373,14 @@ __global__ void ff_calcEl(double2* e_l0, double2* e_l0_ms,
         cosang = fmax(cosang, -0.99999999999);
 
         af_l = scattering(cosang, ampfunc) / w0_p[uDimIdx[2]];
-        e = evalphaseatt(l, -dirl, currX, -1);
+        e = evalphaseatt(l, -dirl, currX, -1, wavelength[dimsVec[6]]);
 
         e_l0[uIdx] = e;
         e_l0_ms[uIdx] = af_l * e;
     }
 }
 
-__global__ void ff_single(double2* us, const double2* e_l0,
+__global__ void ff_single(double2* us, const double2* e_l0, const double* wavelength,
     const double* af_ang_vl, const double* x, const double2* randPhase,
     const double* v1, const double* v2, const double* v3,
     const double* dir_v1, const double* dir_v2, const double* dir_v3)
@@ -400,9 +401,10 @@ __global__ void ff_single(double2* us, const double2* e_l0,
         // 5  - dir_v3
         // 6  - af_ang_vl
         // 7  - e_l0
+        // 8  - wavelength
 
-        unsigned int dimsVec[8] = { 0 };
-        sub2ind(uDimIdx, ff_scattering_maxDim, dimsVec, 8, ff_scattering_inDimProd);
+        unsigned int dimsVec[9] = { 0 };
+        sub2ind(uDimIdx, ff_scattering_maxDim, dimsVec, 9, ff_scattering_inDimProd);
         unsigned int uIdx = bIdx / ff_scattering_dimProd[0];
 
         double3 v, dirv;
@@ -421,7 +423,7 @@ __global__ void ff_single(double2* us, const double2* e_l0,
             dirv.z = dir_v3[dimsVec[5]];
         }
 
-        e = evalphaseatt(v, dirv, currX, 1);
+        e = evalphaseatt(v, dirv, currX, 1, wavelength[dimsVec[8]]);
         field_u[0] = curr_af_ang_vl * e * curr_randPhase * e_l0[dimsVec[7]];
 
         if (ff_corrParamNum == 2)
@@ -435,7 +437,7 @@ __global__ void ff_single(double2* us, const double2* e_l0,
                 dirv.z = dir_v3[dimsVec[5] + 1];
             }
 
-            e = evalphaseatt(v, dirv, currX, 1);
+            e = evalphaseatt(v, dirv, currX, 1, wavelength[dimsVec[8]]);
 
             field_u[1] = curr_af_ang_vl * e * curr_randPhase * e_l0[dimsVec[7] + 1];
             complexIncrease(us + uIdx, conjMult(field_u[0], field_u[1]));
@@ -448,7 +450,7 @@ __global__ void ff_single(double2* us, const double2* e_l0,
     }
 }
 
-__global__ void ff_multiple(double2* u, const double2* e_l0_ms, const bool* activatedPaths,
+__global__ void ff_multiple(double2* u, const double2* e_l0_ms, const double* wavelength, const bool* activatedPaths,
     const double* ampfunc, const double* x, const double* w, const double2* randPhase,
     const double* v1, const double* v2, const double* v3,
     const double* dir_v1, const double* dir_v2, const double* dir_v3)
@@ -468,9 +470,10 @@ __global__ void ff_multiple(double2* u, const double2* e_l0_ms, const bool* acti
         // 4  - dir_v2
         // 5  - dir_v3
         // 7  - e_l0_ms
+        // 8  - wavelength
 
-        unsigned int dimsVec[8] = { 0 };
-        sub2ind(uDimIdx, ff_scattering_maxDim, dimsVec, 8, ff_scattering_inDimProd);
+        unsigned int dimsVec[9] = { 0 };
+        sub2ind(uDimIdx, ff_scattering_maxDim, dimsVec, 9, ff_scattering_inDimProd);
         unsigned int uIdx = bIdx / ff_scattering_dimProd[0];
         double3 v, dirv;
         double af_l, cosang;
@@ -500,7 +503,7 @@ __global__ void ff_multiple(double2* u, const double2* e_l0_ms, const bool* acti
         cosang = fmax(cosang, -0.99999999999);
 
         af_l = scattering(cosang, ampfunc);
-        e = evalphaseatt(v, dirv, currX, 1);
+        e = evalphaseatt(v, dirv, currX, 1, wavelength[dimsVec[8]]);
         field_u[0] = af_l * e * e_l0_ms[dimsVec[7]] * curr_randPhase;
 
         if (ff_corrParamNum == 2)
@@ -524,7 +527,7 @@ __global__ void ff_multiple(double2* u, const double2* e_l0_ms, const bool* acti
             cosang = fmax(cosang, -0.99999999999);
 
             af_l = scattering(cosang, ampfunc);
-            e = evalphaseatt(v, dirv, currX, 1);
+            e = evalphaseatt(v, dirv, currX, 1, wavelength[dimsVec[8]]);
             field_u[1] = af_l * e * e_l0_ms[dimsVec[7] + 1] * curr_randPhase;
 
             complexIncrease(u + uIdx, conjMult(field_u[0], field_u[1]));
